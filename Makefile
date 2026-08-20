@@ -16,4 +16,8 @@ test: syntax
 	$(BATS) tests
 
 install-smoke:
-	install_dir=$$(mktemp -d) && PSH_INSTALL_DIR=$$install_dir sh bin/psh.sh install && test -x "$$install_dir/psh" && PSH_INSTALL_DIR=$$install_dir "$$install_dir/psh" uninstall && test ! -e "$$install_dir/psh"
+	data_home=$$(mktemp -d) && install_dir=$$(mktemp -d) && \
+	XDG_DATA_HOME=$$data_home PSH_INSTALL_DIR=$$install_dir sh bin/psh.sh install && \
+	test -x "$$install_dir/psh" && test -x "$$data_home/psh/psh.sh" && \
+	XDG_DATA_HOME=$$data_home PSH_INSTALL_DIR=$$install_dir "$$install_dir/psh" uninstall && \
+	test ! -e "$$install_dir/psh" && test ! -e "$$data_home/psh/psh.sh"

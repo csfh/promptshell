@@ -31,6 +31,28 @@ setup_psh_test() {
   unset PSH_RAW_BASE
   unset PSH_EXPECT_INSTALL_SOURCE
   unset PSH_INSTALL_SOURCE_FILE
+  unset PSH_OMARCHY_SOURCE
+  unset XDG_DATA_HOME
+  unset XDG_BIN_HOME
+}
+
+install_mock_omarchy() {
+  cat >"$PSH_MOCK_BIN/omarchy" <<'MOCK_OMARCHY'
+#!/bin/sh
+
+if [ "$1" = plugin ] && [ "$2" = validate ]; then
+  plugin_dir=${3:-}
+  if [ -z "$plugin_dir" ] || [ ! -f "$plugin_dir/manifest.json" ]; then
+    printf 'missing plugin manifest\n' >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+exit 0
+MOCK_OMARCHY
+
+  chmod +x "$PSH_MOCK_BIN/omarchy"
 }
 
 teardown_psh_test() {

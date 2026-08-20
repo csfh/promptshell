@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "com.modoterra.promptshell",
+  "name": "Prompt Shell",
+  "version": "1.0.0",
+  "author": "Modoterra",
+  "license": "MIT",
+  "description": "Type a natural-language shell task and run it with psh in a terminal.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Prompt Shell",
+    "description": "Open a prompt panel that launches psh in a terminal",
+    "category": "Tools",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

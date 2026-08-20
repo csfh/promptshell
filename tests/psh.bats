@@ -17,31 +17,83 @@ teardown() {
   [[ "$output" == *"usage: psh"* ]]
   [[ "$output" == *"psh [-v|-vv|-vvv] run PROMPT"* ]]
   [[ "$output" == *"psh install"* ]]
+  [[ "$output" == *"psh install omarchy"* ]]
+  [[ "$output" == *"psh update"* ]]
   [[ "$output" == *"psh uninstall"* ]]
 }
 
-@test "install and uninstall manage psh in the configured directory" {
-  local install_dir=$PSH_TEST_ROOT/install-bin
+@test "install writes XDG payload, launcher, and completion" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
 
-  run env PSH_INSTALL_DIR="$install_dir" "$PSH_REPO_ROOT/bin/psh.sh" install
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
 
   assert_status 0
-  [[ "$output" == *"installed $install_dir/psh"* ]]
-  [ -x "$install_dir/psh" ]
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+  [ -f "$data_home/psh/omarchy/manifest.json" ]
 
-  run "$install_dir/psh" --help
+  run "$bin_home/psh" --help
 
   assert_status 0
   [[ "$output" == *"usage: psh"* ]]
+}
 
-  run env PSH_INSTALL_DIR="$install_dir" "$install_dir/psh" uninstall
+@test "install honors PSH_INSTALL_DIR for the launcher" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  run env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install
 
   assert_status 0
-  [[ "$output" == *"removed $install_dir/psh"* ]]
-  [ ! -e "$install_dir/psh" ]
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+}
+
+@test "uninstall removes launcher payload and completion and leaves config" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local config_dir=$XDG_CONFIG_HOME/psh
+
+  mkdir -p "$config_dir"
+  printf '%s\n' '{"provider":"openai"}' >"$config_dir/config.json"
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $bin_home/psh"* ]]
+  [[ "$output" == *"removed $data_home/psh/psh.sh"* ]]
+  [ ! -e "$bin_home/psh" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh" ]
+  [ -f "$config_dir/config.json" ]
+}
+
+@test "uninstall --purge removes config" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local config_dir=$XDG_CONFIG_HOME/psh
+
+  mkdir -p "$config_dir"
+  printf '%s\n' '{"provider":"openai"}' >"$config_dir/config.json"
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall --purge
+
+  assert_status 0
+  [ ! -e "$config_dir/config.json" ]
 }
 
 @test "piped script can install with sh -s -- install" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
   local raw_base=https://example.test/promptshell
 
@@ -50,11 +102,41 @@ teardown() {
   export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
   export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
 
-  run sh -c 'curl -fsSL "$1" | PSH_INSTALL_DIR="$2" PSH_RAW_BASE="$3" sh -s -- install' sh "$PSH_EXPECT_INSTALL_SOURCE" "$install_dir" "$PSH_RAW_BASE"
+  run sh -c 'curl -fsSL "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" sh -s -- install' sh "$PSH_EXPECT_INSTALL_SOURCE" "$install_dir" "$data_home" "$PSH_RAW_BASE"
 
   assert_status 0
-  [[ "$output" == *"installed $install_dir/psh"* ]]
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
   [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+}
+
+@test "install omarchy copies plugin files" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  install_mock_omarchy
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install omarchy
+
+  assert_status 0
+  [[ "$output" == *"omarchy plugin $XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell"* ]]
+  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/manifest.json" ]
+  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/BarWidget.qml" ]
+  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/Panel.qml" ]
+}
+
+@test "install omarchy fails when omarchy is missing" {
+  if command -v omarchy >/dev/null 2>&1; then
+    skip "omarchy is present on PATH"
+  fi
+
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install omarchy
+
+  assert_status 2
+  [[ "$output" == *"omarchy is required"* ]]
 }
 
 @test "missing API key exits 2 before contacting provider" {

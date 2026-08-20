@@ -24,16 +24,37 @@ Or with wget:
 wget -qO- https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
 ```
 
-By default, the installer writes `psh` to `$HOME/.local/bin`. Override the destination with `PSH_INSTALL_DIR`:
+The installer follows the XDG Base Directory layout:
+
+- Payload: `${XDG_DATA_HOME:-$HOME/.local/share}/psh/psh.sh`
+- Launcher: `${XDG_BIN_HOME:-$HOME/.local/bin}/psh` (override the launcher directory with `PSH_INSTALL_DIR`)
+- Bash completion: `${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/psh`
+- Config: `${XDG_CONFIG_HOME:-$HOME/.config}/psh/config.json`
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | PSH_INSTALL_DIR=/usr/local/bin sh -s -- install
 ```
 
-Uninstall the installed `psh` binary:
+Refresh an existing XDG install from the current script or GitHub:
+
+```sh
+psh update
+```
+
+On Omarchy, install the CLI and copy the bar plugin (does not enable it):
+
+```sh
+psh install omarchy
+omarchy plugin enable com.modoterra.promptshell
+```
+
+Do not `omarchy plugin add` this repository. That would clone the whole CLI tree into the shell plugin directory.
+
+Uninstall the launcher, payload, completions, and Omarchy plugin files. Config is kept unless you pass `--purge`:
 
 ```sh
 psh uninstall
+psh uninstall --purge
 ```
 
 ## Requirements
