@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/install.
 If you omit `--enable`:
 
 ```sh
-omarchy plugin enable com.modoterra.promptshell
+omarchy plugin enable modoterra.promptshell
 ```
 
 ## Usage
@@ -35,6 +35,6 @@ Click **psh** on the bar, type a natural-language shell task, and press Enter. T
 ## Remove
 
 ```sh
-omarchy plugin remove com.modoterra.promptshell
+omarchy plugin remove modoterra.promptshell
 psh uninstall
 ```

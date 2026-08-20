@@ -47,9 +47,9 @@ psh update
 omarchy plugin add https://github.com/modoterra/promptshell.git --enable
 ```
 
-`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.modoterra.promptshell` if you omit `--enable`.
+`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable modoterra.promptshell` if you omit `--enable`.
 
-Remove the CLI with `psh uninstall` (add `--purge` to drop config). Remove the plugin with `omarchy plugin remove com.modoterra.promptshell`.
+Remove the CLI with `psh uninstall` (add `--purge` to drop config). Remove the plugin with `omarchy plugin remove modoterra.promptshell`.
 
 ## Requirements
 

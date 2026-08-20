@@ -120,7 +120,7 @@ teardown() {
   [[ "$output" == *"launcher $bin_home/psh"* ]]
   [ -x "$bin_home/psh" ]
   [ -x "$data_home/psh/psh.sh" ]
-  [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell" ]
+  [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/modoterra.promptshell" ]
 }
 
 @test "piped install.sh downloads psh and installs the CLI" {
