@@ -5,7 +5,7 @@ import qs.Ui
 
 Panel {
   id: root
-  moduleName: "modoterra.promptshell"
+  moduleName: "com.mdtrr.promptshell"
   manageIpc: false
 
   property var anchorItem: null
