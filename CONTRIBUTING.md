@@ -32,7 +32,7 @@ make install-smoke
 
 ## Code Style
 
-- POSIX shell for the CLI, including integrated XDG install, update, and uninstall commands.
+- POSIX shell for the CLI. CLI install is `install.sh` (bash). Omarchy plugin install is `omarchy plugin add` / `omarchy plugin install`.
 - Keep changes small and focused.
 - Preserve stdin/stdout composition and scriptability.
 - Use `/dev/tty` for interactive-only UI.

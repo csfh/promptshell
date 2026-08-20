@@ -7,6 +7,7 @@ deps:
 
 syntax:
 	sh -n bin/psh.sh
+	bash -n install.sh
 	bash -n tests/helpers/psh.bash
 
 test: syntax
@@ -17,7 +18,7 @@ test: syntax
 
 install-smoke:
 	data_home=$$(mktemp -d) && install_dir=$$(mktemp -d) && \
-	XDG_DATA_HOME=$$data_home PSH_INSTALL_DIR=$$install_dir sh bin/psh.sh install && \
+	XDG_DATA_HOME=$$data_home PSH_INSTALL_DIR=$$install_dir bash install.sh && \
 	test -x "$$install_dir/psh" && test -x "$$data_home/psh/psh.sh" && \
 	XDG_DATA_HOME=$$data_home PSH_INSTALL_DIR=$$install_dir "$$install_dir/psh" uninstall && \
 	test ! -e "$$install_dir/psh" && test ! -e "$$data_home/psh/psh.sh"

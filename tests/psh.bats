@@ -17,9 +17,9 @@ teardown() {
   [[ "$output" == *"usage: psh"* ]]
   [[ "$output" == *"psh [-v|-vv|-vvv] run PROMPT"* ]]
   [[ "$output" == *"psh install"* ]]
-  [[ "$output" == *"psh install omarchy"* ]]
   [[ "$output" == *"psh update"* ]]
   [[ "$output" == *"psh uninstall"* ]]
+  [[ "$output" != *"psh install omarchy"* ]]
 }
 
 @test "install writes XDG payload, launcher, and completion" {
@@ -35,7 +35,7 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
   [ -x "$bin_home/psh" ]
   [ -f "$data_home/bash-completion/completions/psh" ]
-  [ -f "$data_home/psh/omarchy/manifest.json" ]
+  [ ! -e "$data_home/psh/omarchy" ]
 
   run "$bin_home/psh" --help
 
@@ -110,33 +110,35 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
 }
 
-@test "install omarchy copies plugin files" {
+@test "install.sh installs the CLI from a checkout" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
 
-  install_mock_omarchy
-
-  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install omarchy
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$PSH_REPO_ROOT/install.sh"
 
   assert_status 0
-  [[ "$output" == *"omarchy plugin $XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell"* ]]
-  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/manifest.json" ]
-  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/BarWidget.qml" ]
-  [ -f "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell/Panel.qml" ]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/com.modoterra.promptshell" ]
 }
 
-@test "install omarchy fails when omarchy is missing" {
-  if command -v omarchy >/dev/null 2>&1; then
-    skip "omarchy is present on PATH"
-  fi
-
+@test "piped install.sh downloads psh and installs the CLI" {
   local data_home=$PSH_TEST_ROOT/xdg-data
-  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
 
-  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install omarchy
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
 
-  assert_status 2
-  [[ "$output" == *"omarchy is required"* ]]
+  run bash -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" bash' bash "$PSH_REPO_ROOT/install.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
 }
 
 @test "missing API key exits 2 before contacting provider" {

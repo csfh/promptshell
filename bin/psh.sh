@@ -10,7 +10,6 @@ usage() {
   printf '       psh [-v|-vv|-vvv] setup\n'
   printf '       psh [-v|-vv|-vvv] setup model\n'
   printf '       psh install\n'
-  printf '       psh install omarchy\n'
   printf '       psh update\n'
   printf '       psh uninstall [--purge]\n'
 }
@@ -33,16 +32,6 @@ require_home() {
     printf 'psh %s: HOME is required unless install path env vars are set\n' "$action" >&2
     exit 2
   fi
-}
-
-xdg_config_home() {
-  if [ -n "${XDG_CONFIG_HOME:-}" ]; then
-    printf '%s\n' "$XDG_CONFIG_HOME"
-    return 0
-  fi
-
-  require_home "$1"
-  printf '%s/.config\n' "$HOME"
 }
 
 xdg_data_home() {
@@ -84,14 +73,6 @@ launcher_path() {
 
 completion_path() {
   printf '%s/bash-completion/completions/psh\n' "$(xdg_data_home "$1")"
-}
-
-omarchy_plugin_id() {
-  printf 'com.modoterra.promptshell\n'
-}
-
-omarchy_plugin_dest() {
-  printf '%s/omarchy/plugins/%s\n' "$(xdg_config_home "$1")" "$(omarchy_plugin_id)"
 }
 
 shell_quote() {
@@ -179,10 +160,6 @@ _psh() {
       COMPREPLY=($(compgen -W "model" -- "$cur"))
       return 0
       ;;
-    install)
-      COMPREPLY=($(compgen -W "omarchy" -- "$cur"))
-      return 0
-      ;;
     uninstall)
       COMPREPLY=($(compgen -W "--purge" -- "$cur"))
       return 0
@@ -201,93 +178,10 @@ EOF
   rm -f "$completion_tmp"
 }
 
-repo_omarchy_dir_from_script() {
-  script_path=$1
-  script_dir=$(CDPATH= cd "$(dirname "$script_path")" 2>/dev/null && pwd || printf '')
-
-  [ -n "$script_dir" ] || return 1
-
-  case $script_dir in
-    */bin)
-      if [ -f "$script_dir/../omarchy/manifest.json" ]; then
-        CDPATH= cd "$script_dir/../omarchy" && pwd
-        return 0
-      fi
-      ;;
-  esac
-
-  return 1
-}
-
-copy_omarchy_plugin_files() {
-  plugin_source_dir=$1
-  plugin_dest_dir=$2
-
-  mkdir -p "$plugin_dest_dir"
-
-  for plugin_file in manifest.json BarWidget.qml Panel.qml README.md; do
-    if [ -f "$plugin_source_dir/$plugin_file" ]; then
-      install_file "$plugin_source_dir/$plugin_file" "$plugin_dest_dir/$plugin_file" 0644
-    fi
-  done
-
-  if [ ! -f "$plugin_dest_dir/manifest.json" ] || [ ! -f "$plugin_dest_dir/BarWidget.qml" ] || [ ! -f "$plugin_dest_dir/Panel.qml" ]; then
-    printf 'psh install: omarchy plugin files are incomplete in %s\n' "$plugin_source_dir" >&2
-    exit 1
-  fi
-}
-
-download_omarchy_plugin_files() {
-  destination=$1
-  repo_raw_base=${PSH_RAW_BASE:-https://raw.githubusercontent.com/modoterra/promptshell/main}
-  download_tmp=$(mktemp -d)
-
-  for plugin_file in manifest.json BarWidget.qml Panel.qml; do
-    source_url=$repo_raw_base/omarchy/$plugin_file
-    if command -v curl >/dev/null 2>&1; then
-      curl -fsSL "$source_url" -o "$download_tmp/$plugin_file"
-    elif command -v wget >/dev/null 2>&1; then
-      wget -qO "$download_tmp/$plugin_file" "$source_url"
-    else
-      rm -rf "$download_tmp"
-      printf 'psh install: curl or wget is required to download omarchy plugin files\n' >&2
-      exit 2
-    fi
-  done
-
-  copy_omarchy_plugin_files "$download_tmp" "$destination"
-  rm -rf "$download_tmp"
-}
-
-resolve_omarchy_source() {
-  if [ -n "${PSH_OMARCHY_SOURCE:-}" ] && [ -f "$PSH_OMARCHY_SOURCE/manifest.json" ]; then
-    printf '%s\n' "$PSH_OMARCHY_SOURCE"
-    return 0
-  fi
-
-  source_script=$(resolve_current_script 2>/dev/null || true)
-  if [ -n "$source_script" ]; then
-    repo_omarchy=$(repo_omarchy_dir_from_script "$source_script" 2>/dev/null || true)
-    if [ -n "$repo_omarchy" ]; then
-      printf '%s\n' "$repo_omarchy"
-      return 0
-    fi
-  fi
-
-  staged=$(payload_dir install)/omarchy
-  if [ -f "$staged/manifest.json" ]; then
-    printf '%s\n' "$staged"
-    return 0
-  fi
-
-  return 1
-}
-
 install_xdg() {
   payload=$(payload_path install)
   launcher=$(launcher_path install)
   completion=$(completion_path install)
-  data_plugin_dir=$(payload_dir install)/omarchy
   install_tmp=$(mktemp)
 
   trap 'rm -f "$install_tmp"' EXIT HUP INT TERM
@@ -306,11 +200,6 @@ install_xdg() {
   rm -f "$install_tmp"
   trap - EXIT HUP INT TERM
 
-  omarchy_source=$(resolve_omarchy_source 2>/dev/null || true)
-  if [ -n "$omarchy_source" ] && [ "$omarchy_source" != "$data_plugin_dir" ]; then
-    copy_omarchy_plugin_files "$omarchy_source" "$data_plugin_dir"
-  fi
-
   printf 'psh install: payload %s\n' "$payload"
   printf 'psh install: launcher %s\n' "$launcher"
   printf 'psh install: config %s\n' "$(config_file)"
@@ -326,51 +215,13 @@ install_xdg() {
   esac
 }
 
-install_omarchy_plugin() {
-  if ! command -v omarchy >/dev/null 2>&1; then
-    printf 'psh install: omarchy is required for `psh install omarchy`\n' >&2
+install_command() {
+  if [ "$#" -gt 0 ]; then
+    usage >&2
     exit 2
   fi
 
-  dest=$(omarchy_plugin_dest install)
-  omarchy_source=$(resolve_omarchy_source 2>/dev/null || true)
-
-  if [ -n "$omarchy_source" ]; then
-    copy_omarchy_plugin_files "$omarchy_source" "$dest"
-  else
-    download_omarchy_plugin_files "$dest"
-  fi
-
-  if command -v omarchy >/dev/null 2>&1; then
-    omarchy plugin validate "$dest"
-  fi
-
-  plugin_id=$(omarchy_plugin_id)
-  printf 'psh install: omarchy plugin %s\n' "$dest"
-  printf 'psh install: enable with `omarchy plugin enable %s`\n' "$plugin_id"
-}
-
-install_command() {
-  install_omarchy=0
-
-  while [ "$#" -gt 0 ]; do
-    case $1 in
-      omarchy|--omarchy)
-        install_omarchy=1
-        shift
-        ;;
-      *)
-        usage >&2
-        exit 2
-        ;;
-    esac
-  done
-
   install_xdg
-
-  if [ "$install_omarchy" -eq 1 ]; then
-    install_omarchy_plugin
-  fi
 }
 
 update_command() {
@@ -401,7 +252,6 @@ uninstall_command() {
   launcher=$(launcher_path uninstall)
   payload=$(payload_path uninstall)
   completion=$(completion_path uninstall)
-  plugin_dest=$(omarchy_plugin_dest uninstall)
   data_dir=$(payload_dir uninstall)
   removed=0
 
@@ -425,18 +275,6 @@ uninstall_command() {
   if [ -f "$completion" ] || [ -L "$completion" ]; then
     rm -f "$completion"
     printf 'psh uninstall: removed %s\n' "$completion"
-    removed=1
-  fi
-
-  if [ -d "$data_dir/omarchy" ]; then
-    rm -rf "$data_dir/omarchy"
-    printf 'psh uninstall: removed %s\n' "$data_dir/omarchy"
-    removed=1
-  fi
-
-  if [ -d "$plugin_dest" ]; then
-    rm -rf "$plugin_dest"
-    printf 'psh uninstall: removed %s\n' "$plugin_dest"
     removed=1
   fi
 

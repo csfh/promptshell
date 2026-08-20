@@ -10,52 +10,46 @@ printf %s "clean up docker" | psh run
 
 ## Install
 
-Install with curl:
+Two install targets:
+
+**CLI** — `install.sh` writes `psh` into XDG directories. It does not install the Omarchy plugin.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/install.sh | bash
 ```
 
-The `-s` flag tells `sh` to read the downloaded script from stdin and pass `install` to `psh`.
-
-Or with wget:
+From a checkout:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+bash install.sh
 ```
 
-The installer follows the XDG Base Directory layout:
+Layout:
 
 - Payload: `${XDG_DATA_HOME:-$HOME/.local/share}/psh/psh.sh`
-- Launcher: `${XDG_BIN_HOME:-$HOME/.local/bin}/psh` (override the launcher directory with `PSH_INSTALL_DIR`)
+- Launcher: `${XDG_BIN_HOME:-$HOME/.local/bin}/psh` (override with `PSH_INSTALL_DIR`)
 - Bash completion: `${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/psh`
 - Config: `${XDG_CONFIG_HOME:-$HOME/.config}/psh/config.json`
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | PSH_INSTALL_DIR=/usr/local/bin sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/install.sh | PSH_INSTALL_DIR=/usr/local/bin bash
 ```
 
-Refresh an existing XDG install from the current script or GitHub:
+Refresh an existing CLI install:
 
 ```sh
 psh update
 ```
 
-On Omarchy, install the CLI and copy the bar plugin (does not enable it):
+**Omarchy plugin** — native plugin install. This is the bar widget only; run `install.sh` as well if `psh` is not already on `PATH`.
 
 ```sh
-psh install omarchy
-omarchy plugin enable com.modoterra.promptshell
+omarchy plugin add https://github.com/modoterra/promptshell.git --enable
 ```
 
-Do not `omarchy plugin add` this repository. That would clone the whole CLI tree into the shell plugin directory.
+`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.modoterra.promptshell` if you omit `--enable`.
 
-Uninstall the launcher, payload, completions, and Omarchy plugin files. Config is kept unless you pass `--purge`:
-
-```sh
-psh uninstall
-psh uninstall --purge
-```
+Remove the CLI with `psh uninstall` (add `--purge` to drop config). Remove the plugin with `omarchy plugin remove com.modoterra.promptshell`.
 
 ## Requirements
 
