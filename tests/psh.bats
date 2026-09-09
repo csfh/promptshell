@@ -1319,6 +1319,18 @@ MOCK_WGET
   [[ "$output" == *"API key is required"* ]]
 }
 
+@test "openai ignores FIREWORKS_API_KEY and requires OPENAI_API_KEY" {
+  require_command setsid
+
+  export PSH_PROVIDER=openai
+  export FIREWORKS_API_KEY=dummy
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"API key is required"* ]]
+}
+
 @test "PSH_API_KEY is accepted as a fireworks key fallback" {
   require_command setsid
   mock_hosted_command true
