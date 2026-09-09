@@ -595,6 +595,16 @@ teardown() {
   jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "sk-test"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
 }
 
+@test "setup requires an API key for hosted providers" {
+  require_command script
+
+  run psh_pty $'\n\n\n' setup
+
+  assert_status 2
+  [[ "$output" == *"API key is required"* ]]
+  [ ! -e "$XDG_CONFIG_HOME/psh/config.json" ]
+}
+
 @test "setup writes config with mode 600" {
   require_command script
 
