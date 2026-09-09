@@ -387,6 +387,27 @@ teardown() {
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "piped install succeeds without HOME when XDG install paths are set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env -u HOME sh -c 'cat "$1" | XDG_DATA_HOME="$2" XDG_BIN_HOME="$3" PSH_RAW_BASE="$4" sh -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$data_home" "$bin_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "install.sh installs the CLI from a checkout" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
