@@ -3471,6 +3471,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: configuration provider=openai"* ]]
 }
 
+@test "verbose -v prints hosted request model" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -v run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: request model=gpt-4.1-mini"* ]]
+}
+
 @test "verbose -vv prints structured response debug" {
   require_command setsid
   mock_hosted_command true
