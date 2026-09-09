@@ -584,6 +584,18 @@ teardown() {
   [ ! -e "$install_dir/psh" ]
 }
 
+@test "install falls back to HOME local share and bin directories" {
+  run psh install
+
+  assert_status 0
+  [[ "$output" == *"payload $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [[ "$output" == *"completion $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+  [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
+}
+
 @test "setup without a tty exits 2" {
   require_command setsid
 
