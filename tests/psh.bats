@@ -492,6 +492,27 @@ MOCK_WGET
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "install.sh requires curl or wget when checkout payload is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local cmd
+
+  mkdir -p "$installer_dir" "$limited"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  for cmd in bash mktemp rm dirname; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  run env PATH="$limited" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$installer_dir/install.sh"
+
+  assert_status 2
+  [[ "$output" == *"install.sh: curl or wget is required"* ]]
+}
+
 @test "run requires jq" {
   local limited=$PSH_TEST_ROOT/limited-bin
   local orig_path=$PATH
