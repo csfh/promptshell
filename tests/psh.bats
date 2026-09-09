@@ -478,6 +478,38 @@ EOF
   [ "$(stat -c '%a' "$data_home/bash-completion/completions/psh")" = 644 ]
 }
 
+@test "piped install falls back to cp when install is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local sh_bin
+  local raw_base=https://example.test/promptshell
+  local cmd
+
+  sh_bin=$(command -v sh)
+  mkdir -p "$limited"
+  for cmd in mktemp rm mkdir chmod cp dirname sed sh basename cat; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  install_mock_raw_curl
+  ln -s "$PSH_MOCK_BIN/curl" "$limited/curl"
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run sh -c 'cat "$1" | PATH="$2" PSH_INSTALL_DIR="$3" XDG_DATA_HOME="$4" PSH_RAW_BASE="$5" "$6" -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$limited" "$install_dir" "$data_home" "$raw_base" "$sh_bin"
+
+  assert_status 0
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$install_dir/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+  [ "$(stat -c '%a' "$data_home/psh/psh.sh")" = 755 ]
+  [ "$(stat -c '%a' "$install_dir/psh")" = 755 ]
+  [ "$(stat -c '%a' "$data_home/bash-completion/completions/psh")" = 644 ]
+}
+
 @test "piped install launcher execs the XDG payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
