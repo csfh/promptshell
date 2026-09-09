@@ -595,6 +595,18 @@ EOF
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "install.sh from a checkout uses HOME local bin when XDG_BIN_HOME is empty" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  run env XDG_BIN_HOME= XDG_DATA_HOME="$data_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+}
+
 @test "install.sh honors PSH_INSTALL_NAME from a checkout" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
