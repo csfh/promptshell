@@ -2944,6 +2944,22 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"-m gemini-2.5-pro"* ]]
 }
 
+@test "gemini uses the default model when none is configured" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/gemini-argv.txt
+
+  mock_gemini_command true
+  export PSH_PROVIDER=gemini
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-m gemini-2.5-flash"* ]]
+}
+
 @test "invalid model JSON exits 1" {
   require_command setsid
   mock_hosted_content 'not-json'
