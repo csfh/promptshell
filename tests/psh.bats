@@ -496,6 +496,27 @@ EOF
   grep -qx "exec '$payload' \"\$@\"" "$install_dir/psh"
 }
 
+@test "piped install launcher quotes payload path with apostrophes" {
+  local data_home="$PSH_TEST_ROOT/xdg-data/o's"
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run sh -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" sh -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  grep -F "exec '$(printf '%s' "$data_home/psh/psh.sh" | sed "s/'/'\\\\''/g")' \"\$@\"" "$install_dir/psh"
+
+  run "$install_dir/psh" --help
+
+  assert_status 0
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "piped install downloads from the default GitHub raw URL" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
