@@ -988,6 +988,20 @@ teardown() {
   [ "$(<"$url_file")" = "https://api.openai.com/v1/chat/completions" ]
 }
 
+@test "hosted openai uses the default model when none is configured" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '.model == "gpt-4.1-mini"' "$request_file" >/dev/null
+}
+
 @test "CODEX_MODEL is passed to codex with -m" {
   require_command setsid
 
