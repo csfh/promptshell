@@ -66,6 +66,33 @@ teardown() {
   [ "$(stat -c '%a' "$data_home/bash-completion/completions/psh")" = 644 ]
 }
 
+@test "install from a checkout does not download psh" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  cat >"$PSH_MOCK_BIN/curl" <<'EOF'
+#!/bin/sh
+printf 'curl should not be called for checkout install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/curl"
+
+  cat >"$PSH_MOCK_BIN/wget" <<'EOF'
+#!/bin/sh
+printf 'wget should not be called for checkout install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/wget"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'usage: psh' "$data_home/psh/psh.sh"
+}
+
 @test "install falls back to cp when install is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
