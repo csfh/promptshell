@@ -1256,6 +1256,21 @@ teardown() {
   [ ! -e "$HOME/.local/share/bash-completion/completions/psh" ]
 }
 
+@test "update falls back to HOME local share and bin directories" {
+  psh install >/dev/null
+  printf 'stale\n' >"$HOME/.local/share/psh/psh.sh"
+
+  run psh update
+
+  assert_status 0
+  [[ "$output" == *"payload $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [[ "$output" == *"completion $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+  grep -q 'usage: psh' "$HOME/.local/share/psh/psh.sh"
+}
+
 @test "install succeeds without HOME when XDG install paths are set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
