@@ -240,6 +240,24 @@ teardown() {
   [ ! -e "$config_dir" ]
 }
 
+@test "uninstall --purge leaves a non-empty config directory" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local config_dir=$XDG_CONFIG_HOME/psh
+
+  mkdir -p "$config_dir"
+  printf '%s\n' '{"provider":"openai"}' >"$config_dir/config.json"
+  printf 'keep\n' >"$config_dir/extra"
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall --purge
+
+  assert_status 0
+  [ ! -e "$config_dir/config.json" ]
+  [ -f "$config_dir/extra" ]
+}
+
 @test "piped script can install with sh -s -- install" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
