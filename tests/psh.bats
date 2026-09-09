@@ -2387,6 +2387,16 @@ EOF
   [[ "$output" != *"add $bin_home to PATH to run \`psh\` directly"* ]]
 }
 
+@test "update hints when PSH_INSTALL_DIR is not on PATH" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  run env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"add $install_dir to PATH to run \`psh\` directly"* ]]
+}
+
 @test "update reinstalls bash completion" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
