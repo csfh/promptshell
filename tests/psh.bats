@@ -2937,6 +2937,24 @@ MOCK_WGET
   [ "$(<"$model_file")" = "gpt-5.4-mini" ]
 }
 
+@test "CODEX_MODEL overrides PSH_MODEL" {
+  require_command setsid
+
+  local model_file=$PSH_TEST_ROOT/codex-model.txt
+
+  mock_codex_command true
+  export PSH_PROVIDER=codex
+  export CODEX_MODEL=gpt-5.4-mini
+  export PSH_MODEL=gpt-5.5
+  export PSH_CAPTURE_CODEX_MODEL=$model_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [ "$(<"$model_file")" = "gpt-5.4-mini" ]
+}
+
 @test "GROK_MODEL is passed to grok with -m" {
   require_command setsid
 
