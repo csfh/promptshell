@@ -1006,6 +1006,27 @@ EOF
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "piped install.sh writes bash completion for psh commands" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
+  local completion=$data_home/bash-completion/completions/psh
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run bash -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" bash' bash "$PSH_REPO_ROOT/install.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [ -f "$completion" ]
+  grep -q 'complete -F _psh psh' "$completion"
+  grep -q 'compgen -W "model"' "$completion"
+  grep -q 'compgen -W "--purge"' "$completion"
+  grep -q 'compgen -W "-v -vv -vvv run setup install update uninstall help --help"' "$completion"
+}
+
 @test "piped install.sh reports config path and setup hint" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
