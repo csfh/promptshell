@@ -59,12 +59,8 @@ xdg_bin_home() {
   printf '%s/.local/bin\n' "$HOME"
 }
 
-payload_dir() {
-  printf '%s/psh\n' "$(xdg_data_home "$1")"
-}
-
 payload_path() {
-  printf '%s/psh.sh\n' "$(payload_dir "$1")"
+  printf '%s/psh/psh.sh\n' "$(xdg_data_home "$1")"
 }
 
 launcher_path() {
@@ -225,12 +221,7 @@ install_command() {
 }
 
 update_command() {
-  if [ "$#" -gt 0 ]; then
-    usage >&2
-    exit 2
-  fi
-
-  install_xdg
+  install_command "$@"
 }
 
 uninstall_command() {
@@ -252,7 +243,7 @@ uninstall_command() {
   launcher=$(launcher_path uninstall)
   payload=$(payload_path uninstall)
   completion=$(completion_path uninstall)
-  data_dir=$(payload_dir uninstall)
+  data_dir=$(dirname "$payload")
   removed=0
 
   if [ -d "$launcher" ]; then
@@ -419,13 +410,6 @@ terminal_log() {
   esac
 
   terminal_printf '\033[38;5;%sm%s\033[0m \033[1mpsh:\033[0m %s\n' "$color" "$label" "$message"
-}
-
-terminal_panel() {
-  title=$1
-  value=$2
-
-  terminal_render_panel "$(printf '[ %s ]\n%s' "$title" "$value")"
 }
 
 terminal_highlight_command() {
@@ -815,7 +799,7 @@ debug_panel() {
   if debug_enabled "$level"; then
 
     if have_tty; then
-      terminal_panel "$title" "$value"
+      terminal_render_panel "$(printf '[ %s ]\n%s' "$title" "$value")"
     else
       printf '\npsh debug: %s\n' "$title" >&2
       printf '%s\n' "$value" | while IFS= read -r line; do
@@ -832,18 +816,6 @@ debug_json_panel() {
 
   if debug_enabled "$level"; then
     formatted=$(printf '%s\n' "$value" | jq . 2>/dev/null || printf '<invalid json>')
-
-    debug_panel "$level" "$title" "$formatted"
-  fi
-}
-
-debug_json_file_panel() {
-  level=$1
-  title=$2
-  file=$3
-
-  if debug_enabled "$level"; then
-    formatted=$(jq . "$file" 2>/dev/null || printf '<invalid json>')
 
     debug_panel "$level" "$title" "$formatted"
   fi
@@ -899,7 +871,7 @@ log_info() {
   if have_tty; then
     terminal_log info "$message"
   else
-    printf 'psh: %s\n' "$message"
+    printf 'psh: %s\n' "$message" >&2
   fi
 }
 
@@ -950,120 +922,62 @@ write_config() {
   printf '%s\n' "$file"
 }
 
+provider_table() {
+  cat <<'EOF'
+openai|hosted||OpenAI|gpt-4.1-mini|OPENAI_MODEL|OPENAI_API_KEY|https://api.openai.com/v1/chat/completions||gpt-4.1-mini,gpt-4.1,gpt-4o-mini,gpt-4o,o4-mini
+fireworks|hosted||Fireworks|accounts/fireworks/models/deepseek-v3p1|FIREWORKS_MODEL|FIREWORKS_API_KEY|https://api.fireworks.ai/inference/v1/chat/completions||accounts/fireworks/models/deepseek-v3p1,accounts/fireworks/models/deepseek-r1,accounts/fireworks/models/llama-v3p1-405b-instruct,accounts/fireworks/models/llama-v3p1-70b-instruct,accounts/fireworks/models/qwen2p5-coder-32b-instruct
+codex|cli|codex|Codex|gpt-5.5|CODEX_MODEL||||gpt-5.5,gpt-5.4,gpt-5.4-mini,gpt-5.3-codex,gpt-5.3-codex-spark,gpt-5.2
+grok|cli|grok|Grok|grok-4.6|GROK_MODEL|||text|grok-4.6,grok-4.5
+claude|cli|claude|Claude|sonnet|CLAUDE_MODEL|||result|sonnet,opus,haiku
+gemini|cli|gemini|Gemini|gemini-2.5-flash|GEMINI_MODEL|||response|gemini-2.5-flash,gemini-2.5-pro
+EOF
+}
+
+provider_field() {
+  provider_table | awk -F'|' -v id="$1" -v name="$2" '
+    BEGIN {
+      f["id"]=1
+      f["kind"]=2
+      f["binary"]=3
+      f["label"]=4
+      f["default_model"]=5
+      f["model_env"]=6
+      f["api_key_env"]=7
+      f["url"]=8
+      f["result_field"]=9
+      f["models"]=10
+    }
+    $1 == id {
+      print $f[name]
+      found=1
+      exit
+    }
+    END { exit found ? 0 : 1 }
+  '
+}
+
 cli_provider_ids() {
-  printf '%s\n' codex grok claude gemini
+  provider_table | awk -F'|' '$2 == "cli" { print $1 }'
 }
 
 provider_kind() {
-  case $1 in
-    openai|fireworks)
-      printf 'hosted\n'
-      ;;
-    codex|grok|claude|gemini)
-      printf 'cli\n'
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  provider_field "$1" kind
 }
 
 provider_binary() {
-  case $1 in
-    codex)
-      printf 'codex\n'
-      ;;
-    grok)
-      printf 'grok\n'
-      ;;
-    claude)
-      printf 'claude\n'
-      ;;
-    gemini)
-      printf 'gemini\n'
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  provider_field "$1" binary
 }
 
 provider_label() {
-  case $1 in
-    openai)
-      printf 'OpenAI\n'
-      ;;
-    fireworks)
-      printf 'Fireworks\n'
-      ;;
-    codex)
-      printf 'Codex\n'
-      ;;
-    grok)
-      printf 'Grok\n'
-      ;;
-    claude)
-      printf 'Claude\n'
-      ;;
-    gemini)
-      printf 'Gemini\n'
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  provider_field "$1" label
 }
 
 provider_from_choice() {
-  for id in openai fireworks $(cli_provider_ids); do
-    label=$(provider_label "$id" 2>/dev/null || true)
-    if [ "$1" = "$id" ] || { [ -n "$label" ] && [ "$1" = "$label" ]; }; then
-      printf '%s\n' "$id"
-      return 0
-    fi
-  done
-
-  return 1
+  provider_table | awk -F'|' -v q="$1" '$1 == q || $4 == q { print $1; found=1; exit } END { exit found ? 0 : 1 }'
 }
 
 provider_default_model() {
-  case $1 in
-    openai)
-      printf 'gpt-4.1-mini\n'
-      ;;
-    fireworks)
-      printf 'accounts/fireworks/models/deepseek-v3p1\n'
-      ;;
-    codex)
-      printf 'gpt-5.5\n'
-      ;;
-    grok)
-      printf 'grok-4.6\n'
-      ;;
-    claude)
-      printf 'sonnet\n'
-      ;;
-    gemini)
-      printf 'gemini-2.5-flash\n'
-      ;;
-    *)
-      return 1
-      ;;
-  esac
-}
-
-provider_url() {
-  case $1 in
-    openai)
-      printf 'https://api.openai.com/v1/chat/completions\n'
-      ;;
-    fireworks)
-      printf 'https://api.fireworks.ai/inference/v1/chat/completions\n'
-      ;;
-    *)
-      printf '%s\n' "$1"
-      ;;
-  esac
+  provider_field "$1" default_model
 }
 
 provider_requires_api_key() {
@@ -1073,7 +987,12 @@ provider_requires_api_key() {
 
 cli_provider_available() {
   binary=$(provider_binary "$1") || return 1
-  command -v "$binary" >/dev/null 2>&1
+  [ -n "$binary" ] && command -v "$binary" >/dev/null 2>&1
+}
+
+env_value() {
+  [ -n "$1" ] || return 0
+  awk -v key="$1" 'BEGIN { if (ENVIRON[key] != "") print ENVIRON[key] }'
 }
 
 prompt_provider() {
@@ -1113,103 +1032,51 @@ resolve_generation_provider() {
     exit 2
   fi
 
-  case $provider in
-    openai)
-      model=${OPENAI_MODEL:-${PSH_MODEL:-$(config_value model)}}
-      model=${model:-$(provider_default_model openai)}
-      api_key=${OPENAI_API_KEY:-${PSH_API_KEY:-$(config_value api_key)}}
-      ;;
-    fireworks)
-      model=${FIREWORKS_MODEL:-${PSH_MODEL:-$(config_value model)}}
-      model=${model:-$(provider_default_model fireworks)}
-      api_key=${FIREWORKS_API_KEY:-${PSH_API_KEY:-$(config_value api_key)}}
-      ;;
-    *)
-      case $kind in
-        cli)
-          case $provider in
-            codex)
-              model=${CODEX_MODEL:-${PSH_MODEL:-$(config_value model)}}
-              ;;
-            grok)
-              model=${GROK_MODEL:-${PSH_MODEL:-$(config_value model)}}
-              ;;
-            claude)
-              model=${CLAUDE_MODEL:-${PSH_MODEL:-$(config_value model)}}
-              ;;
-            gemini)
-              model=${GEMINI_MODEL:-${PSH_MODEL:-$(config_value model)}}
-              ;;
-            *)
-              model=${PSH_MODEL:-$(config_value model)}
-              ;;
-          esac
-          if [ -z "$model" ] || [ "$model" = "$provider" ]; then
-            model=$(provider_default_model "$provider")
-          fi
-          api_key=
-          ;;
-        *)
-          printf 'psh: unsupported provider: %s\n' "$provider" >&2
-          exit 2
-          ;;
-      esac
-      ;;
-  esac
+  model_env=$(provider_field "$provider" model_env)
+  api_key_env=$(provider_field "$provider" api_key_env)
+  model=$(env_value "$model_env")
+  if [ -z "$model" ]; then
+    model=${PSH_MODEL:-$(config_value model)}
+  fi
+  if [ -z "$model" ] || [ "$model" = "$provider" ]; then
+    model=$(provider_default_model "$provider")
+  fi
 
-  url=$(provider_url "$provider")
-
-  if [ "$kind" = cli ]; then
+  if [ "$kind" = hosted ]; then
+    api_key=$(env_value "$api_key_env")
+    if [ -z "$api_key" ]; then
+      api_key=${PSH_API_KEY:-$(config_value api_key)}
+    fi
+    url=$(provider_field "$provider" url)
+    if ! command -v curl >/dev/null 2>&1; then
+      printf 'psh: curl is required\n' >&2
+      exit 2
+    fi
+    if [ -z "$api_key" ]; then
+      printf 'psh: API key is required; run `psh setup` or set provider API key env var\n' >&2
+      exit 2
+    fi
+  else
+    api_key=
+    url=
     binary=$(provider_binary "$provider")
     if ! command -v "$binary" >/dev/null 2>&1; then
       printf 'psh: %s is required for the %s provider\n' "$binary" "$provider" >&2
       exit 2
     fi
-  elif ! command -v curl >/dev/null 2>&1; then
-    printf 'psh: curl is required\n' >&2
-    exit 2
-  fi
-
-  if provider_requires_api_key "$provider" && [ -z "$api_key" ]; then
-    printf 'psh: API key is required; run `psh setup` or set provider API key env var\n' >&2
-    exit 2
   fi
 }
 
-generate_provider_response() {
+generate_provider_text() {
   system=$1
   prompt=$2
 
   case $(provider_kind "$provider") in
     cli)
-      generate_cli_response "$system" "$prompt"
+      generate_cli_text "$system" "$prompt"
       ;;
     hosted)
-      generate_response "$url" "$api_key" "$model" "$system" "$prompt"
-      ;;
-    *)
-      printf 'psh: unsupported provider: %s\n' "$provider" >&2
-      exit 2
-      ;;
-  esac
-}
-
-generate_cli_response() {
-  system=$1
-  prompt=$2
-
-  case $provider in
-    codex)
-      generate_codex_response "$system" "$prompt"
-      ;;
-    grok)
-      generate_grok_response "$system" "$prompt"
-      ;;
-    claude)
-      generate_claude_response "$system" "$prompt"
-      ;;
-    gemini)
-      generate_gemini_response "$system" "$prompt"
+      generate_hosted_text "$url" "$api_key" "$model" "$system" "$prompt"
       ;;
     *)
       printf 'psh: unsupported provider: %s\n' "$provider" >&2
@@ -1376,61 +1243,20 @@ prompt_choice_lines() {
 prompt_model() {
   provider=$1
   default=$2
+  models=$(provider_field "$provider" models 2>/dev/null || true)
 
-  case $provider in
-    openai)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        gpt-4.1-mini \
-        gpt-4.1 \
-        gpt-4o-mini \
-        gpt-4o \
-        o4-mini \
-        Custom)
-      ;;
-    fireworks)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        accounts/fireworks/models/deepseek-v3p1 \
-        accounts/fireworks/models/deepseek-r1 \
-        accounts/fireworks/models/llama-v3p1-405b-instruct \
-        accounts/fireworks/models/llama-v3p1-70b-instruct \
-        accounts/fireworks/models/qwen2p5-coder-32b-instruct \
-        Custom)
-      ;;
-    codex)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        gpt-5.5 \
-        gpt-5.4 \
-        gpt-5.4-mini \
-        gpt-5.3-codex \
-        gpt-5.3-codex-spark \
-        gpt-5.2 \
-        Custom)
-      ;;
-    grok)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        grok-4.6 \
-        grok-4.5 \
-        Custom)
-      ;;
-    claude)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        sonnet \
-        opus \
-        haiku \
-        Custom)
-      ;;
-    gemini)
-      model_choice=$(prompt_choice 'Model' "$default" \
-        gemini-2.5-flash \
-        gemini-2.5-pro \
-        Custom)
-      ;;
-    *)
-      prompt_value 'Model' "$default"
-      return
-      ;;
-  esac
+  if [ -z "$models" ]; then
+    prompt_value 'Model' "$default"
+    return
+  fi
 
+  old_ifs=$IFS
+  IFS=,
+  # shellcheck disable=SC2086
+  set -- $models
+  IFS=$old_ifs
+
+  model_choice=$(prompt_choice 'Model' "$default" "$@" Custom)
   if [ "$model_choice" = Custom ]; then
     prompt_value 'Model' "$default"
   else
@@ -1528,16 +1354,83 @@ setup_model() {
   log_info "saved model to $file"
 }
 
-generate_command() {
+generation_system_prompt() {
+  printf '%s' 'Convert natural language into one safe POSIX shell command. Return only compact JSON. For commands: {"type":"command","command":"...","explanation":"...","risk":"safe|needs_approval|destructive","requires_approval":true}. For ambiguity: {"type":"question","question":"...","options":["...","..."]}. Prefer POSIX shell. Never execute commands. Mark destructive commands risk="destructive".'
+}
+
+request_model_result() {
   prompt=$1
+  request_prompt=$(prompt_context "$prompt")
+  content=$(generate_provider_text "$(generation_system_prompt)" "$request_prompt")
+  parse_model_result "$content"
+}
+
+parse_model_result() {
+  content=$1
+  debug_model_content "$content"
+  parsed=$(extract_structured_json "$content")
+  type=$(printf '%s\n' "$parsed" | jq -r '.type // empty')
+  debug_log 1 "structured response type=$type"
+  debug_json_panel 2 'Structured response' "$parsed"
+
+  case $type in
+    command)
+      normalize_command_result "$parsed"
+      ;;
+    question)
+      question=$(printf '%s\n' "$parsed" | jq -r '.question // empty')
+      if [ -z "$question" ]; then
+        printf 'psh: generated clarification is missing a question\n' >&2
+        exit 1
+      fi
+      printf '%s\n' "$parsed"
+      ;;
+    *)
+      printf 'psh: generated invalid structured response\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
+clarify() {
+  prompt=$1
+  result=$2
+  question=$(printf '%s\n' "$result" | jq -r '.question // empty')
+
+  if ! have_tty; then
+    log_error "clarification required: $question"
+    printf '%s\n' "$result" | jq -r '.options[]? | "psh: option: " + . ' >&2
+    exit 2
+  fi
+
+  options=$(printf '%s\n' "$result" | jq -r '.options[]?')
+
+  if [ -z "$options" ]; then
+    answer=$(prompt_value "$question")
+  else
+    choice=$(printf '%s\nCustom\n' "$options" | prompt_choice_lines "$question")
+    if [ "$choice" = Custom ]; then
+      answer=$(prompt_value 'Answer')
+    else
+      answer=$choice
+    fi
+  fi
+
+  if [ -z "$answer" ]; then
+    printf 'psh: clarification answer is required\n' >&2
+    exit 2
+  fi
+
+  printf '%s\n\nClarification: %s\nAnswer: %s' "$prompt" "$question" "$answer"
+}
+
+generate_until_command() {
+  prompt=$1
+  attempts=0
 
   require_jq
   resolve_generation_provider
-
-  debug_log 1 "configuration provider=$provider model=$model url=$url"
-
-  system='Convert natural language into one safe POSIX shell command. Return only compact JSON. For commands: {"type":"command","command":"...","explanation":"...","risk":"safe|needs_approval|destructive","requires_approval":true}. For ambiguity: {"type":"question","question":"...","options":["...","..."]}. Prefer POSIX shell. Never execute commands. Mark destructive commands risk="destructive".'
-  attempts=0
+  debug_log 1 "configuration provider=$provider model=$model"
 
   while :; do
     attempts=$((attempts + 1))
@@ -1547,50 +1440,16 @@ generate_command() {
       exit 1
     fi
 
-    request_prompt=$(prompt_context "$prompt")
-    response=$(generate_provider_response "$system" "$request_prompt")
-    type=$(printf '%s\n' "$response" | jq -r '.type // empty')
-    debug_log 1 "structured response type=$type"
-    debug_json_panel 2 'Structured response' "$response"
+    result=$(request_model_result "$prompt")
+    type=$(printf '%s\n' "$result" | jq -r '.type // empty')
 
     case $type in
       command)
-        normalize_command_result "$response"
+        printf '%s\n' "$result"
         return
         ;;
       question)
-        question=$(printf '%s\n' "$response" | jq -r '.question // empty')
-
-        if [ -z "$question" ]; then
-          printf 'psh: generated clarification is missing a question\n' >&2
-          exit 1
-        fi
-
-        if ! have_tty; then
-          log_error "clarification required: $question"
-          printf '%s\n' "$response" | jq -r '.options[]? | "psh: option: " + . ' >&2
-          exit 2
-        fi
-
-        options=$(printf '%s\n' "$response" | jq -r '.options[]?')
-
-        if [ -z "$options" ]; then
-          answer=$(prompt_value "$question")
-        else
-          choice=$(printf '%s\nCustom\n' "$options" | prompt_choice_lines "$question")
-          if [ "$choice" = Custom ]; then
-            answer=$(prompt_value 'Answer')
-          else
-            answer=$choice
-          fi
-        fi
-
-        if [ -z "$answer" ]; then
-          printf 'psh: clarification answer is required\n' >&2
-          exit 2
-        fi
-
-        prompt=$(printf '%s\n\nClarification: %s\nAnswer: %s' "$prompt" "$question" "$answer")
+        prompt=$(clarify "$prompt" "$result")
         ;;
       *)
         printf 'psh: generated invalid structured response\n' >&2
@@ -1600,7 +1459,7 @@ generate_command() {
   done
 }
 
-generate_response() {
+generate_hosted_text() {
   url=$1
   api_key=$2
   model=$3
@@ -1628,47 +1487,11 @@ generate_response() {
 
   content=$(jq -r '.choices[0].message.content // empty' "$response_file")
   debug_log 1 'api response received'
-  debug_json_file_panel 3 'API response JSON' "$response_file"
-  debug_model_content "$content"
+  debug_json_panel 3 'API response JSON' "$(cat "$response_file")"
   rm -f "$response_file"
   trap - EXIT HUP INT TERM
 
-  extract_structured_json "$content"
-}
-
-generate_codex_response() {
-  system=$1
-  prompt=$2
-  codex_prompt=$(cli_combined_prompt "$system" "$prompt")
-
-  debug_log 1 'request provider=codex'
-
-  response_file=$(mktemp)
-  trap 'rm -f "$response_file"' EXIT HUP INT TERM
-
-  run_with_spinner "$(spinner_title)" \
-    sh -c 'codex exec --json -m "$1" "$2" >"$3" </dev/null' sh "$model" "$codex_prompt" "$response_file"
-
-  debug_log 1 'codex response received'
-  debug_panel 3 'Codex JSONL' "$(cat "$response_file")"
-
-  content=$(jq -Rrs -r '
-    split("\n")
-    | [map(select(length > 0) | fromjson?)[]
-      | select(.type == "item.completed" and .item.type == "agent_message")
-      | .item.text]
-    | last // empty
-  ' "$response_file")
-
-  if [ -z "$content" ]; then
-    content=$(jq -Rrs -r 'sub("\\s+$"; "")' "$response_file")
-  fi
-
-  debug_model_content "$content"
-  rm -f "$response_file"
-  trap - EXIT HUP INT TERM
-
-  extract_structured_json "$content"
+  printf '%s\n' "$content"
 }
 
 cli_combined_prompt() {
@@ -1688,79 +1511,70 @@ cli_field_or_file() {
   printf '%s\n' "$content"
 }
 
-generate_grok_response() {
-  system=$1
-  prompt=$2
-  grok_prompt=$(cli_combined_prompt "$system" "$prompt")
+invoke_cli_harness() {
+  combined=$1
+  response_file=$2
 
-  debug_log 1 'request provider=grok'
-
-  response_file=$(mktemp)
-  trap 'rm -f "$response_file"' EXIT HUP INT TERM
-
-  run_with_spinner "$(spinner_title)" \
-    sh -c 'grok -p "$1" -m "$2" --output-format json --max-turns 1 --tools "read_file,grep,list_dir" >"$3" </dev/null' \
-    sh "$grok_prompt" "$model" "$response_file"
-
-  debug_log 1 'grok response received'
-  debug_json_file_panel 3 'Grok JSON' "$response_file"
-
-  content=$(cli_field_or_file "$response_file" text)
-  debug_model_content "$content"
-  rm -f "$response_file"
-  trap - EXIT HUP INT TERM
-
-  extract_structured_json "$content"
+  case $provider in
+    codex)
+      sh -c 'codex exec --json -m "$1" "$2" >"$3" </dev/null' sh "$model" "$combined" "$response_file"
+      ;;
+    grok)
+      sh -c 'grok -p "$1" -m "$2" --output-format json --max-turns 1 --tools "read_file,grep,list_dir" >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      ;;
+    claude)
+      sh -c 'claude -p "$1" --model "$2" --output-format json --disallowedTools Bash Edit Write >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      ;;
+    gemini)
+      sh -c 'gemini -p "$1" -m "$2" --output-format json >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      ;;
+    *)
+      printf 'psh: unsupported provider: %s\n' "$provider" >&2
+      exit 2
+      ;;
+  esac
 }
 
-generate_claude_response() {
-  system=$1
-  prompt=$2
-  claude_prompt=$(cli_combined_prompt "$system" "$prompt")
+read_cli_text() {
+  response_file=$1
 
-  debug_log 1 'request provider=claude'
+  if [ "$provider" = codex ]; then
+    debug_panel 3 'Codex JSONL' "$(cat "$response_file")"
+    content=$(jq -Rrs -r '
+      split("\n")
+      | [map(select(length > 0) | fromjson?)[]
+        | select(.type == "item.completed" and .item.type == "agent_message")
+        | .item.text]
+      | last // empty
+    ' "$response_file")
+    if [ -z "$content" ]; then
+      content=$(jq -Rrs -r 'sub("\\s+$"; "")' "$response_file")
+    fi
+    printf '%s\n' "$content"
+    return
+  fi
 
-  response_file=$(mktemp)
-  trap 'rm -f "$response_file"' EXIT HUP INT TERM
-
-  run_with_spinner "$(spinner_title)" \
-    sh -c 'claude -p "$1" --model "$2" --output-format json --disallowedTools Bash Edit Write >"$3" </dev/null' \
-    sh "$claude_prompt" "$model" "$response_file"
-
-  debug_log 1 'claude response received'
-  debug_json_file_panel 3 'Claude JSON' "$response_file"
-
-  content=$(cli_field_or_file "$response_file" result)
-  debug_model_content "$content"
-  rm -f "$response_file"
-  trap - EXIT HUP INT TERM
-
-  extract_structured_json "$content"
+  field=$(provider_field "$provider" result_field)
+  debug_json_panel 3 'Harness JSON' "$(cat "$response_file")"
+  cli_field_or_file "$response_file" "$field"
 }
 
-generate_gemini_response() {
+generate_cli_text() {
   system=$1
   prompt=$2
-  gemini_prompt=$(cli_combined_prompt "$system" "$prompt")
-
-  debug_log 1 'request provider=gemini'
-
+  combined=$(cli_combined_prompt "$system" "$prompt")
   response_file=$(mktemp)
   trap 'rm -f "$response_file"' EXIT HUP INT TERM
 
-  run_with_spinner "$(spinner_title)" \
-    sh -c 'gemini -p "$1" -m "$2" --output-format json >"$3" </dev/null' \
-    sh "$gemini_prompt" "$model" "$response_file"
+  debug_log 1 "request provider=$provider"
+  run_with_spinner "$(spinner_title)" invoke_cli_harness "$combined" "$response_file"
+  debug_log 1 "$provider response received"
 
-  debug_log 1 'gemini response received'
-  debug_json_file_panel 3 'Gemini JSON' "$response_file"
-
-  content=$(cli_field_or_file "$response_file" response)
-  debug_model_content "$content"
+  content=$(read_cli_text "$response_file")
   rm -f "$response_file"
   trap - EXIT HUP INT TERM
 
-  extract_structured_json "$content"
+  printf '%s\n' "$content"
 }
 
 extract_structured_json() {
@@ -1807,14 +1621,6 @@ confirm_run() {
   esac
 }
 
-finish_print_only() {
-  exit 0
-}
-
-decline_generated_command() {
-  exit 1
-}
-
 execute_generated_command() {
   command_text=$1
 
@@ -1824,20 +1630,20 @@ execute_generated_command() {
 
 approve_and_run() {
   command_result=$1
-  generated_command=$(printf '%s\n' "$command_result" | jq -r '.command // empty')
-  risk=$(printf '%s\n' "$command_result" | jq -r '.risk // "needs_approval"')
-  explanation=$(printf '%s\n' "$command_result" | jq -r '.explanation // empty')
+  generated_command=$(printf '%s\n' "$command_result" | jq -r '.command')
+  risk=$(printf '%s\n' "$command_result" | jq -r '.risk')
+  explanation=$(printf '%s\n' "$command_result" | jq -r '.explanation')
 
   display_command "$generated_command"
 
   if ! have_tty; then
-    finish_print_only
+    exit 0
   fi
 
   terminal_command_metadata "$risk" "$explanation"
 
   if ! confirm_run; then
-    decline_generated_command
+    exit 1
   fi
 
   execute_generated_command "$generated_command"
@@ -1854,29 +1660,15 @@ set_run_prompt() {
   fi
 }
 
-require_run_prompt() {
+run_command() {
+  set_run_prompt "$@"
+
   if [ -z "$prompt" ]; then
     printf 'psh: empty prompt\n' >&2
     exit 2
   fi
-}
 
-require_generated_command() {
-  generated_command=$(printf '%s\n' "$1" | jq -r '.command // empty')
-
-  if [ -z "$generated_command" ]; then
-    printf 'psh: empty generated command\n' >&2
-    exit 1
-  fi
-}
-
-run_command() {
-  set_run_prompt "$@"
-  require_run_prompt
-
-  command_result=$(generate_command "$prompt")
-  require_generated_command "$command_result"
-
+  command_result=$(generate_until_command "$prompt")
   approve_and_run "$command_result"
 }
 

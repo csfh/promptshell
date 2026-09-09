@@ -25,6 +25,8 @@ teardown() {
 @test "omarchy panel launches bundled CLI rather than PATH psh" {
   [[ -f "$PSH_REPO_ROOT/Panel.qml" ]]
   grep -q 'Qt.resolvedUrl("bin/psh.sh")' "$PSH_REPO_ROOT/Panel.qml"
+  grep -q 'omarchy-launch-tui' "$PSH_REPO_ROOT/Panel.qml"
+  grep -q 'bundledPshPath()' "$PSH_REPO_ROOT/Panel.qml"
   if grep -q 'execDetached(\["omarchy-launch-tui", "psh"' "$PSH_REPO_ROOT/Panel.qml"; then
     printf 'panel must not launch PATH psh\n' >&2
     return 1
