@@ -570,6 +570,17 @@ teardown() {
   jq -e '.provider == "codex" and .model == "gpt-5.4" and .api_key == ""' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
 }
 
+@test "setup writes config with mode 600" {
+  require_command script
+
+  install_mock_codex
+
+  run psh_pty $'3\n1\n' setup
+
+  assert_status 0
+  [ "$(stat -c '%a' "$XDG_CONFIG_HOME/psh/config.json")" = 600 ]
+}
+
 @test "setup provider and model prompts support arrow selection" {
   require_command script
 
