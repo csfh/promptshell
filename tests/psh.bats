@@ -1224,6 +1224,23 @@ teardown() {
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "uninstall succeeds without HOME when XDG install paths are set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env -u HOME XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $bin_home/psh"* ]]
+  [[ "$output" == *"removed $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"removed $data_home/bash-completion/completions/psh"* ]]
+  [ ! -e "$bin_home/psh" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "install succeeds without HOME when PSH_INSTALL_DIR is set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
