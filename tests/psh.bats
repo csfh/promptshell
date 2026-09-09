@@ -715,6 +715,18 @@ EOF
   [[ "$output" == *"add $install_dir to PATH to run \`psh\` directly"* ]]
 }
 
+@test "install.sh does not hint when PSH_INSTALL_DIR is on PATH" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  mkdir -p "$install_dir"
+  run env PATH="$install_dir:$PATH" PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [[ "$output" != *"add $install_dir to PATH to run \`psh\` directly"* ]]
+}
+
 @test "install.sh from a checkout does not download psh" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
