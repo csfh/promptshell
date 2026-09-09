@@ -923,6 +923,18 @@ EOF
   [ ! -e "$install_dir/psh" ]
 }
 
+@test "install.sh completion stays named psh when launcher name changes" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+
+  run env PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh-alt" ]
+}
+
 @test "install.sh from a checkout succeeds without HOME when XDG install paths are set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
