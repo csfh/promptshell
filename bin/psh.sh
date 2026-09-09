@@ -1393,12 +1393,6 @@ prompt_model() {
         gpt-4o \
         o4-mini \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     fireworks)
       model_choice=$(prompt_choice 'Model' "$default" \
@@ -1408,12 +1402,6 @@ prompt_model() {
         accounts/fireworks/models/llama-v3p1-70b-instruct \
         accounts/fireworks/models/qwen2p5-coder-32b-instruct \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     codex)
       model_choice=$(prompt_choice 'Model' "$default" \
@@ -1424,24 +1412,12 @@ prompt_model() {
         gpt-5.3-codex-spark \
         gpt-5.2 \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     grok)
       model_choice=$(prompt_choice 'Model' "$default" \
         grok-4.6 \
         grok-4.5 \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     claude)
       model_choice=$(prompt_choice 'Model' "$default" \
@@ -1449,30 +1425,24 @@ prompt_model() {
         opus \
         haiku \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     gemini)
       model_choice=$(prompt_choice 'Model' "$default" \
         gemini-2.5-flash \
         gemini-2.5-pro \
         Custom)
-
-      if [ "$model_choice" = Custom ]; then
-        prompt_value 'Model' "$default"
-      else
-        printf '%s\n' "$model_choice"
-      fi
       ;;
     *)
       prompt_value 'Model' "$default"
+      return
       ;;
   esac
 
+  if [ "$model_choice" = Custom ]; then
+    prompt_value 'Model' "$default"
+  else
+    printf '%s\n' "$model_choice"
+  fi
 }
 
 setup() {
