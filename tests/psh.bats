@@ -2444,6 +2444,35 @@ EOF
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "update via installed launcher does not download" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  cat >"$PSH_MOCK_BIN/curl" <<'EOF'
+#!/bin/sh
+printf 'curl should not be called for launcher update\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/curl"
+
+  cat >"$PSH_MOCK_BIN/wget" <<'EOF'
+#!/bin/sh
+printf 'wget should not be called for launcher update\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/wget"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$bin_home/psh" update
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'usage: psh' "$data_home/psh/psh.sh"
+}
+
 @test "update installs when nothing is already installed" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
