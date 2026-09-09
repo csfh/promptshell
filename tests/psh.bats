@@ -2052,6 +2052,13 @@ EOF
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "help extra still prints usage" {
+  run psh help extra
+
+  assert_status 0
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "no arguments prints usage and exits 2" {
   require_command setsid
 
