@@ -64,6 +64,18 @@ teardown() {
   [[ "$output" == *"add $bin_home to PATH to run \`psh\` directly"* ]]
 }
 
+@test "install does not hint when launcher directory is on PATH" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  mkdir -p "$bin_home"
+  run env PATH="$bin_home:$PATH" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" != *"add $bin_home to PATH to run \`psh\` directly"* ]]
+}
+
 @test "install honors PSH_INSTALL_DIR for the launcher" {
   local install_dir=$PSH_TEST_ROOT/install-bin
   local data_home=$PSH_TEST_ROOT/xdg-data
