@@ -2880,6 +2880,22 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"-m grok-4.5"* ]]
 }
 
+@test "grok uses the default model when none is configured" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/grok-argv.txt
+
+  mock_grok_command true
+  export PSH_PROVIDER=grok
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-m grok-4.6"* ]]
+}
+
 @test "CLAUDE_MODEL is passed to claude with --model" {
   require_command setsid
 
