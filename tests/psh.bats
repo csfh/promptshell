@@ -1488,6 +1488,18 @@ MOCK_WGET
   [[ "$output" != *"psh: option:"* ]]
 }
 
+@test "interactive clarification without an answer exits 2" {
+  require_command script
+
+  mock_hosted_content '{"type":"question","question":"Which target?"}'
+  export OPENAI_API_KEY=dummy
+
+  run psh_pty $'\n' run clean
+
+  assert_status 2
+  [[ "$output" == *"clarification answer is required"* ]]
+}
+
 @test "fireworks provider uses hosted generation path" {
   local url_file=$PSH_TEST_ROOT/url.txt
 
