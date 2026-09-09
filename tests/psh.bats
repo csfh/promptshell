@@ -738,6 +738,20 @@ teardown() {
   [ ! -e "$install_dir/psh" ]
 }
 
+@test "uninstall honors PSH_INSTALL_NAME for the launcher" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  env PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $install_dir/psh-alt"* ]]
+  [ ! -e "$install_dir/psh-alt" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+}
+
 @test "install completion stays named psh when launcher name changes" {
   local install_dir=$PSH_TEST_ROOT/install-bin
   local data_home=$PSH_TEST_ROOT/xdg-data
