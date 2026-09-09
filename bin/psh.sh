@@ -951,6 +951,35 @@ config_value() {
   fi
 }
 
+cli_provider_ids() {
+  printf '%s\n' codex
+}
+
+provider_kind() {
+  case $1 in
+    openai|fireworks)
+      printf 'hosted\n'
+      ;;
+    codex)
+      printf 'cli\n'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+provider_binary() {
+  case $1 in
+    codex)
+      printf 'codex\n'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 provider_label() {
   case $1 in
     openai)
@@ -980,6 +1009,13 @@ provider_from_choice() {
       printf 'codex\n'
       ;;
     *)
+      for id in openai fireworks $(cli_provider_ids); do
+        label=$(provider_label "$id" 2>/dev/null || true)
+        if [ "$1" = "$id" ] || { [ -n "$label" ] && [ "$1" = "$label" ]; }; then
+          printf '%s\n' "$id"
+          return 0
+        fi
+      done
       return 1
       ;;
   esac
@@ -1010,27 +1046,31 @@ provider_url() {
     fireworks)
       printf 'https://api.fireworks.ai/inference/v1/chat/completions\n'
       ;;
-    codex)
-      printf 'codex\n'
-      ;;
     *)
-      return 1
+      printf '%s\n' "$1"
       ;;
   esac
 }
 
 provider_requires_api_key() {
-  [ "$1" != codex ]
+  kind=$(provider_kind "$1") || return 1
+  [ "$kind" = hosted ]
+}
+
+cli_provider_available() {
+  binary=$(provider_binary "$1") || return 1
+  command -v "$binary" >/dev/null 2>&1
 }
 
 prompt_provider() {
   default=$1
-
-  if command -v codex >/dev/null 2>&1; then
-    prompt_choice 'Provider' "$default" OpenAI Fireworks Codex
-  else
-    prompt_choice 'Provider' "$default" OpenAI Fireworks
-  fi
+  set -- OpenAI Fireworks
+  for id in $(cli_provider_ids); do
+    if cli_provider_available "$id"; then
+      set -- "$@" "$(provider_label "$id")"
+    fi
+  done
+  prompt_choice 'Provider' "$default" "$@"
 }
 
 setup_model_default() {
@@ -1042,7 +1082,7 @@ setup_model_default() {
     return 1
   fi
 
-  if [ -n "$existing_model" ] && { [ "$provider" != codex ] || [ "$existing_model" != codex ]; }; then
+  if [ -n "$existing_model" ] && { [ "$(provider_kind "$provider")" != cli ] || [ "$existing_model" != "$provider" ]; }; then
     printf '%s\n' "$existing_model"
   else
     printf '%s\n' "$default_model"
@@ -1052,6 +1092,12 @@ setup_model_default() {
 resolve_generation_provider() {
   provider=${PSH_PROVIDER:-$(config_value provider)}
   provider=${provider:-openai}
+  kind=$(provider_kind "$provider" 2>/dev/null || true)
+
+  if [ -z "$kind" ]; then
+    printf 'psh: unsupported provider: %s\n' "$provider" >&2
+    exit 2
+  fi
 
   case $provider in
     openai)
@@ -1064,24 +1110,36 @@ resolve_generation_provider() {
       model=${model:-$(provider_default_model fireworks)}
       api_key=${FIREWORKS_API_KEY:-${PSH_API_KEY:-$(config_value api_key)}}
       ;;
-    codex)
-      model=${CODEX_MODEL:-${PSH_MODEL:-$(config_value model)}}
-      if [ -z "$model" ] || [ "$model" = codex ]; then
-        model=$(provider_default_model codex)
-      fi
-      api_key=
-      ;;
     *)
-      printf 'psh: unsupported provider: %s\n' "$provider" >&2
-      exit 2
+      case $kind in
+        cli)
+          case $provider in
+            codex)
+              model=${CODEX_MODEL:-${PSH_MODEL:-$(config_value model)}}
+              ;;
+            *)
+              model=${PSH_MODEL:-$(config_value model)}
+              ;;
+          esac
+          if [ -z "$model" ] || [ "$model" = "$provider" ]; then
+            model=$(provider_default_model "$provider")
+          fi
+          api_key=
+          ;;
+        *)
+          printf 'psh: unsupported provider: %s\n' "$provider" >&2
+          exit 2
+          ;;
+      esac
       ;;
   esac
 
   url=$(provider_url "$provider")
 
-  if [ "$provider" = codex ]; then
-    if ! command -v codex >/dev/null 2>&1; then
-      printf 'psh: codex is required for the codex provider\n' >&2
+  if [ "$kind" = cli ]; then
+    binary=$(provider_binary "$provider")
+    if ! command -v "$binary" >/dev/null 2>&1; then
+      printf 'psh: %s is required for the %s provider\n' "$binary" "$provider" >&2
       exit 2
     fi
   elif ! command -v curl >/dev/null 2>&1; then
@@ -1099,12 +1157,27 @@ generate_provider_response() {
   system=$1
   prompt=$2
 
+  case $(provider_kind "$provider") in
+    cli)
+      generate_cli_response "$system" "$prompt"
+      ;;
+    hosted)
+      generate_response "$url" "$api_key" "$model" "$system" "$prompt"
+      ;;
+    *)
+      printf 'psh: unsupported provider: %s\n' "$provider" >&2
+      exit 2
+      ;;
+  esac
+}
+
+generate_cli_response() {
+  system=$1
+  prompt=$2
+
   case $provider in
     codex)
       generate_codex_response "$system" "$prompt"
-      ;;
-    openai|fireworks)
-      generate_response "$url" "$api_key" "$model" "$system" "$prompt"
       ;;
     *)
       printf 'psh: unsupported provider: %s\n' "$provider" >&2
@@ -1347,7 +1420,7 @@ setup() {
     exit 2
   fi
 
-  if [ "$provider" = codex ] && ! command -v codex >/dev/null 2>&1; then
+  if [ "$(provider_kind "$provider")" = cli ] && ! cli_provider_available "$provider"; then
     printf 'psh: unsupported provider: %s\n' "$provider_choice" >&2
     exit 2
   fi
@@ -1404,7 +1477,7 @@ setup_model() {
   existing_model=$(config_value model)
   existing_api_key=$(config_value api_key)
 
-  if [ -z "$existing_provider" ] || { [ "$existing_provider" != codex ] && [ -z "$existing_api_key" ]; }; then
+  if [ -z "$existing_provider" ] || { provider_requires_api_key "$existing_provider" && [ -z "$existing_api_key" ]; }; then
     printf 'psh: run `psh setup` before changing only the model\n' >&2
     exit 2
   fi
