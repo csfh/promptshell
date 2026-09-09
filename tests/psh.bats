@@ -1603,6 +1603,20 @@ EOF
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "piped install.sh requires HOME when install path env vars are unset" {
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env -u HOME -u XDG_DATA_HOME -u XDG_BIN_HOME -u PSH_INSTALL_DIR bash -c 'cat "$1" | PSH_RAW_BASE="$2" bash' bash "$PSH_REPO_ROOT/install.sh" "$PSH_RAW_BASE"
+
+  assert_status 1
+  [[ "$output" == *"psh install: HOME is required unless install path env vars are set"* ]]
+}
+
 @test "install.sh downloads psh when checkout payload is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
