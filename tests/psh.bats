@@ -524,6 +524,19 @@ teardown() {
   [[ "$output" == *"psh: option: Images"* ]]
 }
 
+@test "non-interactive clarification without options exits 2" {
+  require_command setsid
+
+  mock_hosted_content '{"type":"question","question":"Which target?"}'
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty run clean
+
+  assert_status 2
+  [[ "$output" == *"clarification required: Which target?"* ]]
+  [[ "$output" != *"psh: option:"* ]]
+}
+
 @test "fireworks provider uses hosted generation path" {
   local url_file=$PSH_TEST_ROOT/url.txt
 
