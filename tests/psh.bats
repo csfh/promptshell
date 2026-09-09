@@ -1917,6 +1917,16 @@ MOCK_WGET
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "verbose flags without a command print usage and exit 2" {
+  require_command setsid
+
+  run psh_no_tty -v
+
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+  [[ "$output" != *"API key is required"* ]]
+}
+
 @test "install rejects extra arguments" {
   run psh install extra
 
