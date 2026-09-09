@@ -629,6 +629,18 @@ teardown() {
   [ ! -e "$XDG_CONFIG_HOME/psh/config.json" ]
 }
 
+@test "setup keeps existing API key when the prompt is blank" {
+  require_command script
+
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: "keep-me"}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_pty $'\n\n\n' setup
+
+  assert_status 0
+  jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "keep-me"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
 @test "setup writes config with mode 600" {
   require_command script
 
