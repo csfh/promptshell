@@ -1027,6 +1027,24 @@ EOF
   grep -q 'compgen -W "-v -vv -vvv run setup install update uninstall help --help"' "$completion"
 }
 
+@test "piped install.sh writes payload launcher and completion modes" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run bash -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" bash' bash "$PSH_REPO_ROOT/install.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [ "$(stat -c '%a' "$data_home/psh/psh.sh")" = 755 ]
+  [ "$(stat -c '%a' "$install_dir/psh")" = 755 ]
+  [ "$(stat -c '%a' "$data_home/bash-completion/completions/psh")" = 644 ]
+}
+
 @test "piped install.sh reports config path and setup hint" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
