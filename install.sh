@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Optional PATH install of Prompt Shell (psh) into XDG directories.
-# Omarchy users get the CLI from the plugin checkout; this only puts `psh` on PATH.
+# Standalone PATH install of Prompt Shell (psh) into XDG directories.
+# Does not require Omarchy. Does not install the Omarchy plugin.
 # Plugin install: omarchy plugin add https://github.com/csfh/promptshell.git
 
 set -euo pipefail

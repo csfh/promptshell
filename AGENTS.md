@@ -10,7 +10,7 @@
 - Preserve normal CLI behavior expectations: stdin/stdout composition, scriptability, and minimal surprise for shell users.
 
 ## Current Repo State
-- Current entrypoint is `bin/psh.sh`. Omarchy install is `omarchy plugin add`; the bar widget launches bundled `bin/psh.sh`. CLI PATH install is optional via `install.sh` (XDG only).
+- Current entrypoint is `bin/psh.sh`. Standalone CLI install is `install.sh` (XDG only) and does not require Omarchy. Omarchy install is `omarchy plugin add`; the bar widget launches bundled `bin/psh.sh`, so a PATH install is optional there.
 - Tests live in `tests/` and use the npm-installed Bats runner at `node_modules/bats/bin/bats`.
 - `Makefile` provides `make test` and `make install-smoke` shortcuts.
 - Do not invent build/lint commands until the relevant executable config exists.

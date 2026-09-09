@@ -1,6 +1,6 @@
 # Prompt Shell Omarchy plugin
 
-Bar widget that opens a prompt panel and runs the bundled CLI in a terminal. Putting `psh` on `PATH` is optional.
+Bar widget that opens a prompt panel and runs the bundled CLI in a terminal. Putting `psh` on `PATH` is optional for Omarchy users. The standalone CLI install (`install.sh`) does not require Omarchy.
 
 ## Install
 

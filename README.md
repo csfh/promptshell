@@ -10,15 +10,7 @@ printf %s "clean up docker" | psh run
 
 ## Install
 
-**Omarchy** — add the bar widget. It runs the bundled CLI from the plugin checkout. You do not need `psh` on `PATH`.
-
-```sh
-omarchy plugin add https://github.com/csfh/promptshell.git --enable
-```
-
-`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.csfh.promptshell` if you omit `--enable`.
-
-**CLI (optional)** — put `psh` on `PATH` if you also want it in a regular terminal. This does not install the Omarchy plugin.
+**CLI** — standalone. Does not require Omarchy.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/csfh/promptshell/main/install.sh | bash
@@ -47,7 +39,15 @@ Refresh an existing CLI install:
 psh update
 ```
 
-Remove the optional CLI with `psh uninstall` (add `--purge` to drop config). Remove the plugin with `omarchy plugin remove com.csfh.promptshell`.
+Remove the CLI with `psh uninstall` (add `--purge` to drop config).
+
+**Omarchy** — bar widget. It runs the bundled CLI from the plugin checkout, so Omarchy users do not need a PATH install. The CLI install above still works on Omarchy if you want `psh` in a regular terminal.
+
+```sh
+omarchy plugin add https://github.com/csfh/promptshell.git --enable
+```
+
+`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.csfh.promptshell` if you omit `--enable`. Remove the plugin with `omarchy plugin remove com.csfh.promptshell`.
 
 ## Requirements
 
