@@ -3581,6 +3581,18 @@ MOCK_WGET
   [[ "$output" == *"psh debug: Model content"* ]]
 }
 
+@test "verbose -vv prints message role debug" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -vv run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: message role=system"* ]]
+  [[ "$output" == *"psh debug: message role=user"* ]]
+}
+
 @test "verbose -vvv prints request JSON debug" {
   require_command setsid
   mock_hosted_command true
