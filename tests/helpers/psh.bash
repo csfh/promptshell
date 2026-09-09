@@ -20,12 +20,19 @@ setup_psh_test() {
   unset OPENAI_MODEL
   unset FIREWORKS_MODEL
   unset CODEX_MODEL
+  unset GROK_MODEL
+  unset CLAUDE_MODEL
+  unset GEMINI_MODEL
   unset PSH_MOCK_RESPONSE
   unset PSH_CAPTURE_REQUEST
   unset PSH_CAPTURE_URL
   unset PSH_CODEX_JSONL
   unset PSH_CAPTURE_CODEX_PROMPT
   unset PSH_CAPTURE_CODEX_MODEL
+  unset PSH_CAPTURE_HARNESS_ARGV
+  unset PSH_GROK_TEXT
+  unset PSH_CLAUDE_RESULT
+  unset PSH_GEMINI_RESPONSE
   unset PSH_INSTALL_DIR
   unset PSH_INSTALL_NAME
   unset PSH_RAW_BASE
@@ -248,4 +255,72 @@ printf '%s\n' "$PSH_CODEX_JSONL"
 MOCK_CODEX
 
   chmod +x "$PSH_MOCK_BIN/codex"
+}
+
+command_json() {
+  jq -cn \
+    --arg command "$1" \
+    --arg explanation "${2:-}" \
+    --arg risk "${3:-safe}" \
+    '{type: "command", command: $command, explanation: $explanation, risk: $risk, requires_approval: true}'
+}
+
+install_mock_grok() {
+  cat >"$PSH_MOCK_BIN/grok" <<'MOCK_GROK'
+#!/bin/sh
+
+if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
+  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
+fi
+
+printf '%s\n' "${PSH_GROK_TEXT:-}"
+MOCK_GROK
+
+  chmod +x "$PSH_MOCK_BIN/grok"
+}
+
+mock_grok_command() {
+  install_mock_grok
+  PSH_GROK_TEXT=$(jq -cn --arg text "$(command_json "$1" "${2:-}" "${3:-safe}")" '{text: $text}')
+  export PSH_GROK_TEXT
+}
+
+install_mock_claude() {
+  cat >"$PSH_MOCK_BIN/claude" <<'MOCK_CLAUDE'
+#!/bin/sh
+
+if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
+  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
+fi
+
+printf '%s\n' "${PSH_CLAUDE_RESULT:-}"
+MOCK_CLAUDE
+
+  chmod +x "$PSH_MOCK_BIN/claude"
+}
+
+mock_claude_command() {
+  install_mock_claude
+  PSH_CLAUDE_RESULT=$(jq -cn --arg result "$(command_json "$1" "${2:-}" "${3:-safe}")" '{result: $result}')
+  export PSH_CLAUDE_RESULT
+}
+
+install_mock_gemini() {
+  cat >"$PSH_MOCK_BIN/gemini" <<'MOCK_GEMINI'
+#!/bin/sh
+
+if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
+  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
+fi
+
+printf '%s\n' "${PSH_GEMINI_RESPONSE:-}"
+MOCK_GEMINI
+
+  chmod +x "$PSH_MOCK_BIN/gemini"
+}
+
+mock_gemini_command() {
+  install_mock_gemini
+  PSH_GEMINI_RESPONSE=$(jq -cn --arg response "$(command_json "$1" "${2:-}" "${3:-safe}")" '{response: $response}')
+  export PSH_GEMINI_RESPONSE
 }

@@ -55,6 +55,9 @@ omarchy plugin add https://github.com/csfh/promptshell.git --enable
 - `curl` is required for hosted providers.
 - `dd` and `stty` are required for interactive approval.
 - `codex` is required only when using `PSH_PROVIDER=codex`.
+- `grok` is required only when using `PSH_PROVIDER=grok`.
+- `claude` is required only when using `PSH_PROVIDER=claude`.
+- `gemini` is required only when using `PSH_PROVIDER=gemini`.
 
 ## Setup
 
@@ -66,9 +69,9 @@ psh setup
 
 `psh setup` requires an interactive terminal. It asks for:
 
-- Provider: OpenAI, Fireworks, or Codex when `codex` is installed.
+- Provider: OpenAI, Fireworks, plus Codex, Grok, Claude, or Gemini when that CLI is installed.
 - Model: choose a listed model or enter a custom model.
-- API key: required for OpenAI and Fireworks; not used for Codex.
+- API key: required for OpenAI and Fireworks; not used for CLI harnesses.
 
 The setup command saves config to `${XDG_CONFIG_HOME:-$HOME/.config}/psh/config.json` with file mode `600`.
 
@@ -87,15 +90,23 @@ OPENAI_API_KEY=... psh run list large files
 PSH_PROVIDER=fireworks FIREWORKS_API_KEY=... psh run list large files
 PSH_PROVIDER=codex psh run list large files
 PSH_PROVIDER=codex CODEX_MODEL=gpt-5.4 psh run list large files
+PSH_PROVIDER=grok psh run list large files
+PSH_PROVIDER=claude psh run list large files
+PSH_PROVIDER=gemini psh run list large files
 ```
 
 Provider/model environment variables:
 
-- `PSH_PROVIDER`: `openai`, `fireworks`, or `codex`.
+- `PSH_PROVIDER`: `openai`, `fireworks`, `codex`, `grok`, `claude`, or `gemini`.
 - `OPENAI_API_KEY`, `OPENAI_MODEL` for OpenAI.
 - `FIREWORKS_API_KEY`, `FIREWORKS_MODEL` for Fireworks.
 - `CODEX_MODEL` for Codex. The model is passed to `codex exec` with `-m`.
+- `GROK_MODEL` for Grok Build (`grok`). Auth stays with `grok` (`XAI_API_KEY` or `grok login`).
+- `CLAUDE_MODEL` for Claude Code (`claude`).
+- `GEMINI_MODEL` for Gemini CLI (`gemini`).
 - `PSH_API_KEY`, `PSH_MODEL` as provider-agnostic fallbacks.
+
+CLI harnesses only propose a command. `psh` still shows it and requires approval before execution. Grok is invoked with a read-only `--tools` allowlist. Claude is invoked with `--disallowedTools Bash Edit Write`. Gemini is invoked without `--yolo`.
 
 Environment variables override saved config for that run.
 

@@ -270,6 +270,75 @@ teardown() {
   [ "$(<"$model_file")" = "gpt-5.5" ]
 }
 
+@test "grok provider parses JSON text and uses propose-only flags" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/grok-argv.txt
+
+  mock_grok_command true
+  export PSH_PROVIDER=grok
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-p "* ]]
+  [[ "$(<"$argv_file")" == *"--output-format json"* ]]
+  [[ "$(<"$argv_file")" == *"--max-turns 1"* ]]
+  [[ "$(<"$argv_file")" == *"--tools read_file,grep,list_dir"* ]]
+  [[ "$(<"$argv_file")" != *"--always-approve"* ]]
+  [[ "$(<"$argv_file")" != *"--yolo"* ]]
+}
+
+@test "grok provider requires the grok binary" {
+  require_command setsid
+
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export PSH_PROVIDER=grok
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"grok is required for the grok provider"* ]]
+}
+
+@test "claude provider parses JSON result and disallows mutating tools" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/claude-argv.txt
+
+  mock_claude_command true
+  export PSH_PROVIDER=claude
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-p "* ]]
+  [[ "$(<"$argv_file")" == *"--output-format json"* ]]
+  [[ "$(<"$argv_file")" == *"--disallowedTools Bash Edit Write"* ]]
+}
+
+@test "gemini provider parses JSON response without yolo" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/gemini-argv.txt
+
+  mock_gemini_command true
+  export PSH_PROVIDER=gemini
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-p "* ]]
+  [[ "$(<"$argv_file")" == *"--output-format json"* ]]
+  [[ "$(<"$argv_file")" != *"--yolo"* ]]
+}
+
 @test "codex provider passes configured model with -m" {
   require_command setsid
 

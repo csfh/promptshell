@@ -5,7 +5,7 @@
 - **Prompt Shell**: The `psh` CLI. It translates a natural-language shell task into a generated shell command, shows that command, and requires approval before interactive execution.
 - **Prompt**: The natural-language shell task supplied through argv or stdin.
 - **Run**: The `psh run` flow, including explicit `run`, implicit `run`, prompt intake, command generation, command display, approval, and execution.
-- **Provider**: A model-backed command generator such as OpenAI, Fireworks, or Codex.
+- **Provider**: A command generator. Hosted providers (OpenAI, Fireworks) call an HTTP API. CLI harnesses (Codex, Grok, Claude, Gemini) run a local binary. Harnesses propose a command; they must not execute it. `psh` owns approval and execution.
 - **Generated command**: The shell command returned from a provider result. In non-interactive mode this is the only successful stdout output.
 - **Model result**: The structured provider result after raw model content is normalized into a command, clarification question, or invalid result.
 - **Command risk**: Provider-supplied advisory metadata for a generated command. Valid values are `safe`, `needs_approval`, and `destructive`; unknown values normalize to `needs_approval`.

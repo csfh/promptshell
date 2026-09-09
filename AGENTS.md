@@ -27,6 +27,9 @@
 - Smoke checks with OpenAI access: `OPENAI_API_KEY=... bin/psh.sh run clean up docker`, `OPENAI_API_KEY=... bin/psh.sh clean up docker`, and `printf %s "clean up docker" | OPENAI_API_KEY=... bin/psh.sh run` verify prompt ingestion and command generation.
 - Smoke check with Fireworks access: `PSH_PROVIDER=fireworks FIREWORKS_API_KEY=... bin/psh.sh run clean up docker` verifies Fireworks command generation.
 - Smoke check with Codex access: `PSH_PROVIDER=codex bin/psh.sh run clean up docker` verifies local Codex command generation when `codex` is installed.
+- Smoke check with Grok Build: `PSH_PROVIDER=grok bin/psh.sh run clean up docker` when `grok` is installed.
+- Smoke check with Claude Code: `PSH_PROVIDER=claude bin/psh.sh run clean up docker` when `claude` is installed.
+- Smoke check with Gemini CLI: `PSH_PROVIDER=gemini bin/psh.sh run clean up docker` when `gemini` is installed.
 
 ## Agent skills
 

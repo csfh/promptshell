@@ -952,7 +952,7 @@ config_value() {
 }
 
 cli_provider_ids() {
-  printf '%s\n' codex
+  printf '%s\n' codex grok claude gemini
 }
 
 provider_kind() {
@@ -960,7 +960,7 @@ provider_kind() {
     openai|fireworks)
       printf 'hosted\n'
       ;;
-    codex)
+    codex|grok|claude|gemini)
       printf 'cli\n'
       ;;
     *)
@@ -973,6 +973,15 @@ provider_binary() {
   case $1 in
     codex)
       printf 'codex\n'
+      ;;
+    grok)
+      printf 'grok\n'
+      ;;
+    claude)
+      printf 'claude\n'
+      ;;
+    gemini)
+      printf 'gemini\n'
       ;;
     *)
       return 1
@@ -991,6 +1000,15 @@ provider_label() {
     codex)
       printf 'Codex\n'
       ;;
+    grok)
+      printf 'Grok\n'
+      ;;
+    claude)
+      printf 'Claude\n'
+      ;;
+    gemini)
+      printf 'Gemini\n'
+      ;;
     *)
       return 1
       ;;
@@ -1007,6 +1025,15 @@ provider_from_choice() {
       ;;
     3|codex|Codex|CODEX)
       printf 'codex\n'
+      ;;
+    grok|Grok|GROK)
+      printf 'grok\n'
+      ;;
+    claude|Claude|CLAUDE)
+      printf 'claude\n'
+      ;;
+    gemini|Gemini|GEMINI)
+      printf 'gemini\n'
       ;;
     *)
       for id in openai fireworks $(cli_provider_ids); do
@@ -1031,6 +1058,15 @@ provider_default_model() {
       ;;
     codex)
       printf 'gpt-5.5\n'
+      ;;
+    grok)
+      printf 'grok-4.6\n'
+      ;;
+    claude)
+      printf 'sonnet\n'
+      ;;
+    gemini)
+      printf 'gemini-2.5-flash\n'
       ;;
     *)
       return 1
@@ -1117,6 +1153,15 @@ resolve_generation_provider() {
             codex)
               model=${CODEX_MODEL:-${PSH_MODEL:-$(config_value model)}}
               ;;
+            grok)
+              model=${GROK_MODEL:-${PSH_MODEL:-$(config_value model)}}
+              ;;
+            claude)
+              model=${CLAUDE_MODEL:-${PSH_MODEL:-$(config_value model)}}
+              ;;
+            gemini)
+              model=${GEMINI_MODEL:-${PSH_MODEL:-$(config_value model)}}
+              ;;
             *)
               model=${PSH_MODEL:-$(config_value model)}
               ;;
@@ -1178,6 +1223,15 @@ generate_cli_response() {
   case $provider in
     codex)
       generate_codex_response "$system" "$prompt"
+      ;;
+    grok)
+      generate_grok_response "$system" "$prompt"
+      ;;
+    claude)
+      generate_claude_response "$system" "$prompt"
+      ;;
+    gemini)
+      generate_gemini_response "$system" "$prompt"
       ;;
     *)
       printf 'psh: unsupported provider: %s\n' "$provider" >&2
@@ -1384,6 +1438,43 @@ prompt_model() {
         gpt-5.3-codex \
         gpt-5.3-codex-spark \
         gpt-5.2 \
+        Custom)
+
+      if [ "$model_choice" = Custom ]; then
+        prompt_value 'Model' "$default"
+      else
+        printf '%s\n' "$model_choice"
+      fi
+      ;;
+    grok)
+      model_choice=$(prompt_choice 'Model' "$default" \
+        grok-4.6 \
+        grok-4.5 \
+        Custom)
+
+      if [ "$model_choice" = Custom ]; then
+        prompt_value 'Model' "$default"
+      else
+        printf '%s\n' "$model_choice"
+      fi
+      ;;
+    claude)
+      model_choice=$(prompt_choice 'Model' "$default" \
+        sonnet \
+        opus \
+        haiku \
+        Custom)
+
+      if [ "$model_choice" = Custom ]; then
+        prompt_value 'Model' "$default"
+      else
+        printf '%s\n' "$model_choice"
+      fi
+      ;;
+    gemini)
+      model_choice=$(prompt_choice 'Model' "$default" \
+        gemini-2.5-flash \
+        gemini-2.5-pro \
         Custom)
 
       if [ "$model_choice" = Custom ]; then
@@ -1649,6 +1740,98 @@ generate_codex_response() {
     content=$(jq -Rrs -r 'sub("\\s+$"; "")' "$response_file")
   fi
 
+  debug_model_content "$content"
+  rm -f "$response_file"
+  trap - EXIT HUP INT TERM
+
+  extract_structured_json "$content"
+}
+
+cli_combined_prompt() {
+  jq -nr \
+    --arg system "$1" \
+    --arg prompt "$2" \
+    '$system + "\n\nUser request:\n" + $prompt'
+}
+
+cli_field_or_file() {
+  file=$1
+  field=$2
+  content=$(jq -r --arg field "$field" '.[$field] // empty' "$file" 2>/dev/null || true)
+  if [ -z "$content" ]; then
+    content=$(jq -Rrs -r 'sub("\\s+$"; "")' "$file")
+  fi
+  printf '%s\n' "$content"
+}
+
+generate_grok_response() {
+  system=$1
+  prompt=$2
+  grok_prompt=$(cli_combined_prompt "$system" "$prompt")
+
+  debug_log 1 'request provider=grok'
+
+  response_file=$(mktemp)
+  trap 'rm -f "$response_file"' EXIT HUP INT TERM
+
+  run_with_spinner "$(spinner_title)" \
+    sh -c 'grok -p "$1" -m "$2" --output-format json --max-turns 1 --tools "read_file,grep,list_dir" >"$3" </dev/null' \
+    sh "$grok_prompt" "$model" "$response_file"
+
+  debug_log 1 'grok response received'
+  debug_json_file_panel 3 'Grok JSON' "$response_file"
+
+  content=$(cli_field_or_file "$response_file" text)
+  debug_model_content "$content"
+  rm -f "$response_file"
+  trap - EXIT HUP INT TERM
+
+  extract_structured_json "$content"
+}
+
+generate_claude_response() {
+  system=$1
+  prompt=$2
+  claude_prompt=$(cli_combined_prompt "$system" "$prompt")
+
+  debug_log 1 'request provider=claude'
+
+  response_file=$(mktemp)
+  trap 'rm -f "$response_file"' EXIT HUP INT TERM
+
+  run_with_spinner "$(spinner_title)" \
+    sh -c 'claude -p "$1" --model "$2" --output-format json --disallowedTools Bash Edit Write >"$3" </dev/null' \
+    sh "$claude_prompt" "$model" "$response_file"
+
+  debug_log 1 'claude response received'
+  debug_json_file_panel 3 'Claude JSON' "$response_file"
+
+  content=$(cli_field_or_file "$response_file" result)
+  debug_model_content "$content"
+  rm -f "$response_file"
+  trap - EXIT HUP INT TERM
+
+  extract_structured_json "$content"
+}
+
+generate_gemini_response() {
+  system=$1
+  prompt=$2
+  gemini_prompt=$(cli_combined_prompt "$system" "$prompt")
+
+  debug_log 1 'request provider=gemini'
+
+  response_file=$(mktemp)
+  trap 'rm -f "$response_file"' EXIT HUP INT TERM
+
+  run_with_spinner "$(spinner_title)" \
+    sh -c 'gemini -p "$1" -m "$2" --output-format json >"$3" </dev/null' \
+    sh "$gemini_prompt" "$model" "$response_file"
+
+  debug_log 1 'gemini response received'
+  debug_json_file_panel 3 'Gemini JSON' "$response_file"
+
+  content=$(cli_field_or_file "$response_file" response)
   debug_model_content "$content"
   rm -f "$response_file"
   trap - EXIT HUP INT TERM
