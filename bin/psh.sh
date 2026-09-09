@@ -399,17 +399,6 @@ terminal_render_panel() {
   terminal_panel_line "$(terminal_spaces "$width")"
 }
 
-terminal_render_command_panel() {
-  content=$1
-  width=100
-
-  terminal_panel_line "$(terminal_spaces "$width")"
-  printf '%s\n' "$content" | while IFS= read -r line; do
-    terminal_panel_content_line "$line"
-  done
-  terminal_panel_line "$(terminal_spaces "$width")"
-}
-
 terminal_log() {
   level=$1
   message=$2
@@ -437,10 +426,6 @@ terminal_panel() {
   value=$2
 
   terminal_render_panel "$(printf '[ %s ]\n%s' "$title" "$value")"
-}
-
-terminal_command_panel() {
-  terminal_render_command_panel "$1"
 }
 
 terminal_highlight_command() {
