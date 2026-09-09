@@ -3662,6 +3662,19 @@ MOCK_WGET
   jq -e '(.messages[1].content | fromjson | .prompt) == "say hi"' "$request_file" >/dev/null
 }
 
+@test "repeated -v does not raise verbosity to -vv" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -v -v run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: configuration provider=openai"* ]]
+  [[ "$output" != *"psh debug: Structured response"* ]]
+  [[ "$output" != *"psh debug: Model content"* ]]
+}
+
 @test "generated command non-zero status is preserved" {
   local marker=$PSH_TEST_ROOT/fail-marker
 
