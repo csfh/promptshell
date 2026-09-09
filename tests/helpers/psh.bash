@@ -30,9 +30,7 @@ setup_psh_test() {
   unset PSH_CAPTURE_CODEX_PROMPT
   unset PSH_CAPTURE_CODEX_MODEL
   unset PSH_CAPTURE_HARNESS_ARGV
-  unset PSH_GROK_TEXT
-  unset PSH_CLAUDE_RESULT
-  unset PSH_GEMINI_RESPONSE
+  unset PSH_HARNESS_OUTPUT
   unset PSH_INSTALL_DIR
   unset PSH_INSTALL_NAME
   unset PSH_RAW_BASE
@@ -265,62 +263,38 @@ command_json() {
     '{type: "command", command: $command, explanation: $explanation, risk: $risk, requires_approval: true}'
 }
 
-install_mock_grok() {
-  cat >"$PSH_MOCK_BIN/grok" <<'MOCK_GROK'
+install_mock_harness() {
+  cat >"$PSH_MOCK_BIN/$1" <<'MOCK_HARNESS'
 #!/bin/sh
 
 if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
   printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
 fi
 
-printf '%s\n' "${PSH_GROK_TEXT:-}"
-MOCK_GROK
+printf '%s\n' "${PSH_HARNESS_OUTPUT:-}"
+MOCK_HARNESS
 
-  chmod +x "$PSH_MOCK_BIN/grok"
+  chmod +x "$PSH_MOCK_BIN/$1"
+}
+
+mock_harness_command() {
+  local name=$1
+  local field=$2
+  shift 2
+
+  install_mock_harness "$name"
+  PSH_HARNESS_OUTPUT=$(jq -cn --arg field "$field" --arg value "$(command_json "$1" "${2:-}" "${3:-safe}")" '{($field): $value}')
+  export PSH_HARNESS_OUTPUT
 }
 
 mock_grok_command() {
-  install_mock_grok
-  PSH_GROK_TEXT=$(jq -cn --arg text "$(command_json "$1" "${2:-}" "${3:-safe}")" '{text: $text}')
-  export PSH_GROK_TEXT
-}
-
-install_mock_claude() {
-  cat >"$PSH_MOCK_BIN/claude" <<'MOCK_CLAUDE'
-#!/bin/sh
-
-if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
-  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
-fi
-
-printf '%s\n' "${PSH_CLAUDE_RESULT:-}"
-MOCK_CLAUDE
-
-  chmod +x "$PSH_MOCK_BIN/claude"
+  mock_harness_command grok text "$@"
 }
 
 mock_claude_command() {
-  install_mock_claude
-  PSH_CLAUDE_RESULT=$(jq -cn --arg result "$(command_json "$1" "${2:-}" "${3:-safe}")" '{result: $result}')
-  export PSH_CLAUDE_RESULT
-}
-
-install_mock_gemini() {
-  cat >"$PSH_MOCK_BIN/gemini" <<'MOCK_GEMINI'
-#!/bin/sh
-
-if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
-  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
-fi
-
-printf '%s\n' "${PSH_GEMINI_RESPONSE:-}"
-MOCK_GEMINI
-
-  chmod +x "$PSH_MOCK_BIN/gemini"
+  mock_harness_command claude result "$@"
 }
 
 mock_gemini_command() {
-  install_mock_gemini
-  PSH_GEMINI_RESPONSE=$(jq -cn --arg response "$(command_json "$1" "${2:-}" "${3:-safe}")" '{response: $response}')
-  export PSH_GEMINI_RESPONSE
+  mock_harness_command gemini response "$@"
 }
