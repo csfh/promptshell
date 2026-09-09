@@ -23,7 +23,7 @@ bin/psh.sh --help
 ## Running Tests
 
 ```sh
-make test
+just test
 ```
 
 The test suite uses the npm-installed Bats runner at `node_modules/bats/bin/bats`.
@@ -31,7 +31,7 @@ The test suite uses the npm-installed Bats runner at `node_modules/bats/bin/bats
 Run the installer smoke check:
 
 ```sh
-make install-smoke
+just install-smoke
 ```
 
 ## Code Style

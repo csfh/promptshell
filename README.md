@@ -165,13 +165,13 @@ npm install
 Run syntax checks and the Bats integration suite:
 
 ```sh
-make test
+just test
 ```
 
 Run the local installer smoke check:
 
 ```sh
-make install-smoke
+just install-smoke
 ```
 
 ## Contributing
