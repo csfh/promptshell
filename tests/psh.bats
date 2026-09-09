@@ -809,6 +809,26 @@ EOF
   [ -x "$HOME/.local/bin/psh" ]
 }
 
+@test "piped install.sh uses HOME local share when XDG_DATA_HOME is empty" {
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run bash -c 'cat "$1" | XDG_DATA_HOME= XDG_BIN_HOME="$2" PSH_RAW_BASE="$3" bash' bash "$PSH_REPO_ROOT/install.sh" "$bin_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [[ "$output" == *"payload $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
+}
+
 @test "piped install.sh succeeds without HOME when PSH_INSTALL_DIR is set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
