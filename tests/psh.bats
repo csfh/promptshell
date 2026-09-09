@@ -1665,6 +1665,15 @@ MOCK_WGET
   jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "sk-test"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
 }
 
+@test "setup can save a fireworks provider API key" {
+  require_command script
+
+  run psh_pty $'\033[B\n\nsk-fw\n' setup
+
+  assert_status 0
+  jq -e '.provider == "fireworks" and .model == "accounts/fireworks/models/deepseek-v3p1" and .api_key == "sk-fw"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
 @test "setup requires an API key for hosted providers" {
   require_command script
 
