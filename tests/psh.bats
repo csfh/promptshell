@@ -1702,6 +1702,24 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"--disallowedTools Bash Edit Write"* ]]
 }
 
+@test "claude receives a combined system prompt and user request" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/claude-argv.txt
+
+  mock_claude_command true
+  export PSH_PROVIDER=claude
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"Convert natural language into one safe POSIX shell command"* ]]
+  [[ "$(<"$argv_file")" == *$'\n\nUser request:\n'* ]]
+  grep -qE '"prompt": ?"say hi"' "$argv_file"
+}
+
 @test "claude falls back to raw output when JSON result field is missing" {
   require_command setsid
 
