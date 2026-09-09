@@ -3482,6 +3482,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: request model=gpt-4.1-mini"* ]]
 }
 
+@test "verbose -v prints api response received" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -v run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: api response received"* ]]
+}
+
 @test "verbose -vv prints structured response debug" {
   require_command setsid
   mock_hosted_command true
