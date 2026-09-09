@@ -211,6 +211,18 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "install uses HOME local bin when XDG_BIN_HOME is empty" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  run env XDG_BIN_HOME= XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+}
+
 @test "uninstall removes launcher payload and completion and leaves config" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
