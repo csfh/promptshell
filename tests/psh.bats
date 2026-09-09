@@ -1032,6 +1032,23 @@ teardown() {
   [ ! -e "$data_home/psh/psh.sh" ]
 }
 
+@test "uninstall removes a dangling completion symlink" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local completion=$data_home/bash-completion/completions/psh
+
+  mkdir -p "$(dirname "$completion")"
+  ln -s "$data_home/bash-completion/completions/missing-psh" "$completion"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $completion"* ]]
+  [[ "$output" != *"not installed at $bin_home/psh"* ]]
+  [ ! -L "$completion" ]
+  [ ! -e "$completion" ]
+}
+
 @test "uninstall removes payload when launcher is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
