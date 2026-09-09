@@ -912,6 +912,21 @@ teardown() {
   [[ "$output" == *"expected a file at $bin_home/psh"* ]]
 }
 
+@test "uninstall removes a dangling launcher symlink" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  mkdir -p "$bin_home"
+  ln -s "$bin_home/missing-psh" "$bin_home/psh"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $bin_home/psh"* ]]
+  [ ! -L "$bin_home/psh" ]
+  [ ! -e "$bin_home/psh" ]
+}
+
 @test "uninstall honors PSH_INSTALL_DIR for the launcher" {
   local install_dir=$PSH_TEST_ROOT/install-bin
   local data_home=$PSH_TEST_ROOT/xdg-data
