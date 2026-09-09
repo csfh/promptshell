@@ -1704,6 +1704,23 @@ MOCK_WGET
   [ ! -e "$data_home/psh/psh.sh" ]
 }
 
+@test "uninstall prefers PSH_INSTALL_DIR over XDG_BIN_HOME" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  mkdir -p "$bin_home"
+  printf 'other\n' >"$bin_home/psh"
+
+  run env PSH_INSTALL_DIR="$install_dir" XDG_BIN_HOME="$bin_home" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $install_dir/psh"* ]]
+  [ ! -e "$install_dir/psh" ]
+  [ -f "$bin_home/psh" ]
+}
+
 @test "update reinstalls launcher and payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
