@@ -327,6 +327,20 @@ teardown() {
   [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/com.csfh.promptshell" ]
 }
 
+@test "install.sh honors PSH_INSTALL_DIR from a checkout" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ ! -e "$bin_home/psh" ]
+}
+
 @test "piped install.sh downloads psh and installs the CLI" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
