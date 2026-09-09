@@ -78,6 +78,21 @@ teardown() {
   grep -qx "exec '$payload' \"\$@\"" "$bin_home/psh"
 }
 
+@test "install launcher quotes payload path with apostrophes" {
+  local data_home="$PSH_TEST_ROOT/xdg-data/o's"
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  grep -F "exec '$(printf '%s' "$data_home/psh/psh.sh" | sed "s/'/'\\\\''/g")' \"\$@\"" "$bin_home/psh"
+
+  run "$bin_home/psh" --help
+
+  assert_status 0
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "install writes bash completion for psh commands" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
