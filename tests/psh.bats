@@ -1532,6 +1532,20 @@ MOCK_WGET
   [ "$(<"$model_file")" = "gpt-5.5" ]
 }
 
+@test "codex falls back to raw output when JSONL has no agent message" {
+  require_command setsid
+
+  install_mock_codex
+  PSH_CODEX_JSONL=$(command_json true)
+  export PSH_CODEX_JSONL
+  export PSH_PROVIDER=codex
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+}
+
 @test "grok provider parses JSON text and uses propose-only flags" {
   require_command setsid
 
