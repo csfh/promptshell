@@ -1604,6 +1604,24 @@ MOCK_WGET
   [[ "$(<"$argv_file")" != *"--yolo"* ]]
 }
 
+@test "grok receives a combined system prompt and user request" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/grok-argv.txt
+
+  mock_grok_command true
+  export PSH_PROVIDER=grok
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"Convert natural language into one safe POSIX shell command"* ]]
+  [[ "$(<"$argv_file")" == *$'\n\nUser request:\n'* ]]
+  grep -qE '"prompt": ?"say hi"' "$argv_file"
+}
+
 @test "grok falls back to raw output when JSON text field is missing" {
   require_command setsid
 
