@@ -296,6 +296,21 @@ teardown() {
   jq -e '(.messages[1].content | fromjson | .prompt) == "clean up docker"' "$request_file" >/dev/null
 }
 
+@test "run prefers prompt argv over stdin" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty_stdin "from stdin" run from argv
+
+  assert_status 0
+  [ "$output" = true ]
+  jq -e '(.messages[1].content | fromjson | .prompt) == "from argv"' "$request_file" >/dev/null
+}
+
 @test "empty prompt from stdin exits 2" {
   require_command setsid
 
