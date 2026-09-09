@@ -2193,6 +2193,13 @@ EOF
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "uninstall --purge rejects extra arguments" {
+  run psh uninstall --purge extra
+
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "install.sh rejects extra arguments" {
   run bash "$PSH_REPO_ROOT/install.sh" extra
 
