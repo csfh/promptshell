@@ -339,6 +339,16 @@ teardown() {
   [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
 }
 
+@test "install.sh honors PSH_INSTALL_NAME when falling back to HOME local bin from a checkout" {
+  run env PSH_INSTALL_NAME=psh-alt bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $HOME/.local/bin/psh-alt"* ]]
+  [ -x "$HOME/.local/bin/psh-alt" ]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ ! -e "$HOME/.local/bin/psh" ]
+}
+
 @test "install.sh honors PSH_INSTALL_DIR from a checkout" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
