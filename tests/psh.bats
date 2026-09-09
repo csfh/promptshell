@@ -324,6 +324,26 @@ teardown() {
   [[ "$output" == *"jq is required"* ]]
 }
 
+@test "hosted generation requires curl" {
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local orig_path=$PATH
+
+  require_command setsid
+  mkdir -p "$limited"
+  ln -s "$(command -v setsid)" "$limited/setsid"
+  ln -s "$(command -v jq)" "$limited/jq"
+  ln -s "$(command -v awk)" "$limited/awk"
+  ln -s "$(command -v cat)" "$limited/cat"
+  export PATH="$limited"
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty run say hi
+  export PATH="$orig_path"
+
+  assert_status 2
+  [[ "$output" == *"curl is required"* ]]
+}
+
 @test "missing API key exits 2 before contacting provider" {
   require_command setsid
 
