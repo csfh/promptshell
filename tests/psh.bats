@@ -1752,6 +1752,24 @@ MOCK_WGET
   [[ "$(<"$argv_file")" != *"--yolo"* ]]
 }
 
+@test "gemini receives a combined system prompt and user request" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/gemini-argv.txt
+
+  mock_gemini_command true
+  export PSH_PROVIDER=gemini
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"Convert natural language into one safe POSIX shell command"* ]]
+  [[ "$(<"$argv_file")" == *$'\n\nUser request:\n'* ]]
+  grep -qE '"prompt": ?"say hi"' "$argv_file"
+}
+
 @test "gemini falls back to raw output when JSON response field is missing" {
   require_command setsid
 
