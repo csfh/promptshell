@@ -1016,6 +1016,22 @@ teardown() {
   [ ! -e "$bin_home/psh" ]
 }
 
+@test "uninstall removes a dangling payload symlink" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  mkdir -p "$data_home/psh"
+  ln -s "$data_home/psh/missing-psh.sh" "$data_home/psh/psh.sh"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $data_home/psh/psh.sh"* ]]
+  [[ "$output" != *"not installed at $bin_home/psh"* ]]
+  [ ! -L "$data_home/psh/psh.sh" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+}
+
 @test "uninstall removes payload when launcher is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
