@@ -1394,6 +1394,19 @@ MOCK_WGET
   [ ! -e "$HOME/.local/share/psh/psh.sh" ]
 }
 
+@test "update honors PSH_INSTALL_NAME when falling back to HOME local bin" {
+  env PSH_INSTALL_NAME=psh-alt "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  printf 'stale\n' >"$HOME/.local/share/psh/psh.sh"
+
+  run env PSH_INSTALL_NAME=psh-alt "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"launcher $HOME/.local/bin/psh-alt"* ]]
+  [ -x "$HOME/.local/bin/psh-alt" ]
+  [ ! -e "$HOME/.local/bin/psh" ]
+  grep -q 'usage: psh' "$HOME/.local/share/psh/psh.sh"
+}
+
 @test "uninstall falls back to HOME local share and bin directories" {
   psh install >/dev/null
 
