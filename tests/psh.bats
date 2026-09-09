@@ -1742,6 +1742,26 @@ EOF
   [[ "$output" == *"run \`psh setup\` before the first hosted-provider request"* ]]
 }
 
+@test "install.sh reports config under HOME/.config when XDG_CONFIG_HOME is unset when checkout payload is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local raw_base=https://example.test/promptshell
+
+  mkdir -p "$installer_dir"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env -u XDG_CONFIG_HOME XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$installer_dir/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"config $HOME/.config/psh/config.json"* ]]
+}
+
 @test "install.sh falls back to HOME local share and bin directories when checkout payload is missing" {
   local installer_dir=$PSH_TEST_ROOT/standalone
   local raw_base=https://example.test/promptshell
