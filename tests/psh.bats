@@ -1241,6 +1241,23 @@ teardown() {
   [ ! -e "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "update succeeds without HOME when XDG install paths are set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  printf 'stale\n' >"$data_home/psh/psh.sh"
+
+  run env -u HOME XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  grep -q 'usage: psh' "$data_home/psh/psh.sh"
+}
+
 @test "install succeeds without HOME when PSH_INSTALL_DIR is set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
