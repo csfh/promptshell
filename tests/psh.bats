@@ -3686,6 +3686,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: Structured response"* ]]
 }
 
+@test "-v -vvv raises verbosity to -vvv" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -v -vvv run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: Request JSON"* ]]
+}
+
 @test "generated command non-zero status is preserved" {
   local marker=$PSH_TEST_ROOT/fail-marker
 
