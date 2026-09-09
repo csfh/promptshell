@@ -1647,6 +1647,20 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"--disallowedTools Bash Edit Write"* ]]
 }
 
+@test "claude falls back to raw output when JSON result field is missing" {
+  require_command setsid
+
+  install_mock_harness claude
+  PSH_HARNESS_OUTPUT=$(command_json true)
+  export PSH_HARNESS_OUTPUT
+  export PSH_PROVIDER=claude
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+}
+
 @test "gemini provider parses JSON response without yolo" {
   require_command setsid
 
