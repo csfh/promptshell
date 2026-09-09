@@ -1521,6 +1521,21 @@ MOCK_WGET
   jq -e --arg cwd "$PWD" '(.messages[1].content | fromjson | .cwd) == $cwd' "$request_file" >/dev/null
 }
 
+@test "hosted request prompt context includes the shell" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+  export SHELL=/bin/testh
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '(.messages[1].content | fromjson | .shell) == "/bin/testh"' "$request_file" >/dev/null
+}
+
 @test "non-interactive clarification exits 2 and shows available options" {
   require_command setsid
 
