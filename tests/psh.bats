@@ -3021,6 +3021,25 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"--model opus"* ]]
 }
 
+@test "CLAUDE_MODEL overrides PSH_MODEL" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/claude-argv.txt
+
+  mock_claude_command true
+  export PSH_PROVIDER=claude
+  export CLAUDE_MODEL=opus
+  export PSH_MODEL=sonnet
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"--model opus"* ]]
+  [[ "$(<"$argv_file")" != *"--model sonnet"* ]]
+}
+
 @test "claude uses the default model when none is configured" {
   require_command setsid
 
