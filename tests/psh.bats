@@ -233,6 +233,15 @@ teardown() {
   [[ "$output" == *"empty prompt"* ]]
 }
 
+@test "interactive run without a prompt prints usage" {
+  require_command script
+
+  run psh_pty n run
+
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "hosted request uses deterministic decoding and tiny prompt context" {
   local request_file=$PSH_TEST_ROOT/request.json
 
