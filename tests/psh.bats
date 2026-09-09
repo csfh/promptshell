@@ -152,6 +152,72 @@ EOF
   grep -q 'downloaded-source-marker' "$data_home/psh/psh.sh"
 }
 
+@test "install uses wget when the script is not named psh" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local renamed=$PSH_TEST_ROOT/promptshell
+  local downloaded=$PSH_TEST_ROOT/downloaded-psh.sh
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local raw_base=https://example.test/promptshell
+  local cmd
+
+  mkdir -p "$limited"
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$renamed"
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$downloaded"
+  printf '\n# downloaded-source-marker\n' >>"$downloaded"
+
+  for cmd in mktemp rm mkdir chmod cp dirname sed install sh basename cat; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  cat >"$limited/wget" <<'MOCK_WGET'
+#!/bin/sh
+
+out=
+url=
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    -qO)
+      shift
+      out=${1:-}
+      ;;
+    http*)
+      url=$1
+      ;;
+  esac
+  shift || break
+done
+
+if [ -n "${PSH_EXPECT_INSTALL_SOURCE:-}" ] && [ "$url" != "$PSH_EXPECT_INSTALL_SOURCE" ]; then
+  printf 'unexpected install source: %s\n' "$url" >&2
+  exit 2
+fi
+
+if [ -z "${PSH_INSTALL_SOURCE_FILE:-}" ]; then
+  printf 'missing PSH_INSTALL_SOURCE_FILE\n' >&2
+  exit 2
+fi
+
+[ -n "$out" ] || exit 2
+cp "$PSH_INSTALL_SOURCE_FILE" "$out"
+MOCK_WGET
+  chmod +x "$limited/wget"
+
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$downloaded
+
+  run env PATH="$limited" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" PSH_RAW_BASE="$raw_base" sh "$renamed" install
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'downloaded-source-marker' "$data_home/psh/psh.sh"
+}
+
 @test "install falls back to cp when install is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
