@@ -1743,6 +1743,20 @@ MOCK_WGET
   [ -f "$bin_home/psh" ]
 }
 
+@test "uninstall uses XDG_BIN_HOME when PSH_INSTALL_DIR is empty" {
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  env XDG_BIN_HOME="$bin_home" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env PSH_INSTALL_DIR= XDG_BIN_HOME="$bin_home" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $bin_home/psh"* ]]
+  [ ! -e "$bin_home/psh" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+}
+
 @test "update reinstalls launcher and payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
