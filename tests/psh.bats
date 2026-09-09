@@ -3030,6 +3030,23 @@ MOCK_WGET
   [[ "$(<"$argv_file")" == *"-m grok-4.6"* ]]
 }
 
+@test "config model matching the provider id uses the default model" {
+  require_command setsid
+
+  local argv_file=$PSH_TEST_ROOT/grok-argv.txt
+
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "grok", model: "grok", api_key: ""}' >"$XDG_CONFIG_HOME/psh/config.json"
+  mock_grok_command true
+  export PSH_CAPTURE_HARNESS_ARGV=$argv_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$argv_file")" == *"-m grok-4.6"* ]]
+}
+
 @test "CLAUDE_MODEL is passed to claude with --model" {
   require_command setsid
 
