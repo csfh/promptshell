@@ -322,6 +322,22 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "piped install.sh downloads from the default GitHub raw URL" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+
+  install_mock_raw_curl
+  export PSH_EXPECT_INSTALL_SOURCE=https://raw.githubusercontent.com/csfh/promptshell/main/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run bash -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" bash' bash "$PSH_REPO_ROOT/install.sh" "$install_dir" "$data_home"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+}
+
 @test "install.sh downloads psh when checkout payload is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
