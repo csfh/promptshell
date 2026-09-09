@@ -898,6 +898,23 @@ teardown() {
   [ "$(<"$url_file")" = "https://api.fireworks.ai/inference/v1/chat/completions" ]
 }
 
+@test "PSH_PROVIDER overrides saved config provider" {
+  local url_file=$PSH_TEST_ROOT/url.txt
+
+  require_command setsid
+  mock_hosted_command true
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "fireworks", model: "", api_key: "from-config"}' >"$XDG_CONFIG_HOME/psh/config.json"
+  export PSH_PROVIDER=openai
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_URL=$url_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$(<"$url_file")" = "https://api.openai.com/v1/chat/completions" ]
+}
+
 @test "saved config model is sent in the hosted request" {
   local request_file=$PSH_TEST_ROOT/request.json
 
