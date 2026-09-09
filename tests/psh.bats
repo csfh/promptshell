@@ -1553,6 +1553,20 @@ MOCK_WGET
   [[ "$(<"$argv_file")" != *"--yolo"* ]]
 }
 
+@test "grok falls back to raw output when JSON text field is missing" {
+  require_command setsid
+
+  install_mock_harness grok
+  PSH_HARNESS_OUTPUT=$(command_json true)
+  export PSH_HARNESS_OUTPUT
+  export PSH_PROVIDER=grok
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+}
+
 @test "grok provider requires the grok binary" {
   require_command setsid
 
