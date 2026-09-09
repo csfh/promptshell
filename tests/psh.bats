@@ -341,6 +341,19 @@ teardown() {
   [ ! -e "$bin_home/psh" ]
 }
 
+@test "install.sh honors PSH_INSTALL_NAME from a checkout" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+
+  run env PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh-alt"* ]]
+  [ -x "$install_dir/psh-alt" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ ! -e "$install_dir/psh" ]
+}
+
 @test "piped install.sh downloads psh and installs the CLI" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
