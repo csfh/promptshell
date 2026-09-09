@@ -127,6 +127,31 @@ EOF
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "install downloads when the script is not named psh" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local renamed=$PSH_TEST_ROOT/promptshell
+  local downloaded=$PSH_TEST_ROOT/downloaded-psh.sh
+  local raw_base=https://example.test/promptshell
+
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$renamed"
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$downloaded"
+  printf '\n# downloaded-source-marker\n' >>"$downloaded"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$downloaded
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" sh "$renamed" install
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'downloaded-source-marker' "$data_home/psh/psh.sh"
+}
+
 @test "install falls back to cp when install is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
