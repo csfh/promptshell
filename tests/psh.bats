@@ -773,6 +773,13 @@ teardown() {
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "setup model rejects extra arguments" {
+  run psh setup model extra
+
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "setup model changes only the model" {
   require_command script
 
