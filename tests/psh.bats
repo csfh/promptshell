@@ -1752,6 +1752,19 @@ MOCK_WGET
   [ -e "$marker" ]
 }
 
+@test "interactive uppercase Y executes the generated command" {
+  local marker=$PSH_TEST_ROOT/approve-Y-marker
+
+  require_command script
+  mock_hosted_command "touch $marker" "creates a marker" needs_approval
+  export OPENAI_API_KEY=dummy
+
+  run psh_pty Y run test approve
+
+  assert_status 0
+  [ -e "$marker" ]
+}
+
 @test "interactive metadata shows review notice and normalized risk" {
   require_command script
 
