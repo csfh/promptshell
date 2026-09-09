@@ -93,6 +93,40 @@ EOF
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "install from a PATH psh does not download" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local path_dir=$PSH_TEST_ROOT/path-bin
+  local workdir=$PSH_TEST_ROOT/workdir
+
+  mkdir -p "$path_dir" "$workdir"
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$path_dir/psh"
+  chmod +x "$path_dir/psh"
+
+  cat >"$PSH_MOCK_BIN/curl" <<'EOF'
+#!/bin/sh
+printf 'curl should not be called for PATH install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/curl"
+
+  cat >"$PSH_MOCK_BIN/wget" <<'EOF'
+#!/bin/sh
+printf 'wget should not be called for PATH install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/wget"
+
+  run env PATH="$path_dir:$PATH" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" \
+    sh -c 'cd "$1" && psh install' sh "$workdir"
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'usage: psh' "$data_home/psh/psh.sh"
+}
+
 @test "install falls back to cp when install is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
