@@ -674,6 +674,18 @@ teardown() {
   [ ! -e "$install_dir/psh" ]
 }
 
+@test "install completion stays named psh when launcher name changes" {
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local data_home=$PSH_TEST_ROOT/xdg-data
+
+  run env PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh-alt" ]
+}
+
 @test "install falls back to HOME local share and bin directories" {
   run psh install
 
