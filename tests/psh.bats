@@ -1256,6 +1256,24 @@ EOF
   [ ! -e "$install_dir/psh" ]
 }
 
+@test "piped install.sh completion stays named psh when launcher name changes" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run bash -c 'cat "$1" | PSH_INSTALL_NAME=psh-alt PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" bash' bash "$PSH_REPO_ROOT/install.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh-alt" ]
+}
+
 @test "piped install.sh prefers PSH_INSTALL_DIR over XDG_BIN_HOME" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
