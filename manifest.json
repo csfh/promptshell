@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "com.csfh.promptshell",
+  "name": "Prompt Shell",
+  "version": "1.0.0",
+  "author": "Christoffer Hallas",
+  "license": "MIT",
+  "description": "Type a natural-language shell task in the bar. The CLI on PATH is optional.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Prompt Shell",
+    "description": "Open a prompt panel that runs the bundled CLI in a terminal",
+    "category": "Tools",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

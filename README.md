@@ -10,31 +10,44 @@ printf %s "clean up docker" | psh run
 
 ## Install
 
-Install with curl:
+**Omarchy** — add the bar widget. It runs the bundled CLI from the plugin checkout. You do not need `psh` on `PATH`.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+omarchy plugin add https://github.com/csfh/promptshell.git --enable
 ```
 
-The `-s` flag tells `sh` to read the downloaded script from stdin and pass `install` to `psh`.
+`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.csfh.promptshell` if you omit `--enable`.
 
-Or with wget:
+**CLI (optional)** — put `psh` on `PATH` if you also want it in a regular terminal. This does not install the Omarchy plugin.
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/csfh/promptshell/main/install.sh | bash
 ```
 
-By default, the installer writes `psh` to `$HOME/.local/bin`. Override the destination with `PSH_INSTALL_DIR`:
+From a checkout:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | PSH_INSTALL_DIR=/usr/local/bin sh -s -- install
+bash install.sh
 ```
 
-Uninstall the installed `psh` binary:
+Layout:
+
+- Payload: `${XDG_DATA_HOME:-$HOME/.local/share}/psh/psh.sh`
+- Launcher: `${XDG_BIN_HOME:-$HOME/.local/bin}/psh` (override with `PSH_INSTALL_DIR`)
+- Bash completion: `${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/psh`
+- Config: `${XDG_CONFIG_HOME:-$HOME/.config}/psh/config.json`
 
 ```sh
-psh uninstall
+curl -fsSL https://raw.githubusercontent.com/csfh/promptshell/main/install.sh | PSH_INSTALL_DIR=/usr/local/bin bash
 ```
+
+Refresh an existing CLI install:
+
+```sh
+psh update
+```
+
+Remove the optional CLI with `psh uninstall` (add `--purge` to drop config). Remove the plugin with `omarchy plugin remove com.csfh.promptshell`.
 
 ## Requirements
 
