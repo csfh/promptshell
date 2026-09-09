@@ -840,6 +840,17 @@ teardown() {
   [[ "$output" == *"generated clarification is missing a question"* ]]
 }
 
+@test "unknown structured type exits 1" {
+  require_command setsid
+  mock_hosted_content '{"type":"nope"}'
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty run say hi
+
+  assert_status 1
+  [[ "$output" == *"generated invalid structured response"* ]]
+}
+
 @test "think content is stripped from the generated command" {
   require_command setsid
   mock_hosted_content "$(printf '<think>\nhidden-reasoning\n</think>\n%s' "$(command_json true)")"
