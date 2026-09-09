@@ -1048,6 +1048,21 @@ teardown() {
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "update installs when nothing is already installed" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "update reinstalls bash completion" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
