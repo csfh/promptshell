@@ -3615,6 +3615,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: API response JSON"* ]]
 }
 
+@test "verbose -vvv prints Codex JSONL debug" {
+  require_command setsid
+  mock_codex_command true
+  export PSH_PROVIDER=codex
+
+  run psh_no_tty -vvv run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: Codex JSONL"* ]]
+}
+
 @test "double dash ends verbosity flags" {
   local request_file=$PSH_TEST_ROOT/request.json
 
