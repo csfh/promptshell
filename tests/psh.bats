@@ -3626,6 +3626,19 @@ MOCK_WGET
   [[ "$output" == *"psh debug: API response JSON"* ]]
 }
 
+@test "verbose -vvv prints invalid json placeholder for harness response" {
+  require_command setsid
+  install_mock_harness grok
+  export PSH_HARNESS_OUTPUT='not-json'
+  export PSH_PROVIDER=grok
+
+  run psh_no_tty -vvv run say hi
+
+  assert_status 1
+  [[ "$output" == *"psh debug: Harness JSON"* ]]
+  [[ "$output" == *"<invalid json>"* ]]
+}
+
 @test "verbose -vvv prints Codex JSONL debug" {
   require_command setsid
   mock_codex_command true
