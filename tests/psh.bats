@@ -1771,6 +1771,22 @@ MOCK_WGET
   [ ! -e "$data_home/psh/psh.sh" ]
 }
 
+@test "uninstall uses HOME local share when XDG_DATA_HOME is empty" {
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env XDG_DATA_HOME= XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $bin_home/psh"* ]]
+  [[ "$output" == *"removed $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"removed $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ ! -e "$bin_home/psh" ]
+  [ ! -e "$HOME/.local/share/psh/psh.sh" ]
+  [ ! -e "$HOME/.local/share/bash-completion/completions/psh" ]
+}
+
 @test "update reinstalls launcher and payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
