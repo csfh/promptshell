@@ -1650,7 +1650,7 @@ generate_codex_response() {
     sh -c 'codex exec --json -m "$1" "$2" >"$3" </dev/null' sh "$model" "$codex_prompt" "$response_file"
 
   debug_log 1 'codex response received'
-  debug_panel 3 'Codex JSONL' "$(while IFS= read -r line; do printf '%s\n' "$line"; done <"$response_file")"
+  debug_panel 3 'Codex JSONL' "$(cat "$response_file")"
 
   content=$(jq -Rrs -r '
     split("\n")
