@@ -1108,6 +1108,21 @@ teardown() {
   jq -e '.model == "gpt-4.1-mini"' "$request_file" >/dev/null
 }
 
+@test "hosted fireworks uses the default model when none is configured" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export PSH_PROVIDER=fireworks
+  export FIREWORKS_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '.model == "accounts/fireworks/models/deepseek-v3p1"' "$request_file" >/dev/null
+}
+
 @test "CODEX_MODEL is passed to codex with -m" {
   require_command setsid
 
