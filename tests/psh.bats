@@ -1461,6 +1461,25 @@ MOCK_WGET
   ' "$request_file" >/dev/null
 }
 
+@test "hosted request includes the generation system prompt" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '
+    .messages[0].role == "system"
+    and (.messages[0].content | test("Convert natural language into one safe POSIX shell command"))
+    and (.messages[0].content | test("Return only compact JSON"))
+    and (.messages[1].role == "user")
+  ' "$request_file" >/dev/null
+}
+
 @test "non-interactive clarification exits 2 and shows available options" {
   require_command setsid
 
