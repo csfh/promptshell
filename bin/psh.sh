@@ -1666,11 +1666,7 @@ generate_response() {
 generate_codex_response() {
   system=$1
   prompt=$2
-
-  codex_prompt=$(jq -nr \
-    --arg system "$system" \
-    --arg prompt "$prompt" \
-    '$system + "\n\nUser request:\n" + $prompt')
+  codex_prompt=$(cli_combined_prompt "$system" "$prompt")
 
   debug_log 1 'request provider=codex'
 
