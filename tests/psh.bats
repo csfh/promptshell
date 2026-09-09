@@ -2404,6 +2404,13 @@ MOCK_WGET
   [[ "$output" == *"psh install: HOME is required unless install path env vars are set"* ]]
 }
 
+@test "install.sh requires HOME when install path env vars are unset" {
+  run env -u HOME -u XDG_DATA_HOME -u XDG_BIN_HOME -u PSH_INSTALL_DIR bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 1
+  [[ "$output" == *"psh install: HOME is required unless install path env vars are set"* ]]
+}
+
 @test "install succeeds without HOME when XDG install paths are set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
