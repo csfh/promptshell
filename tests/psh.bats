@@ -298,6 +298,18 @@ teardown() {
   [[ "$output" == *"API key is required"* ]]
 }
 
+@test "fireworks ignores OPENAI_API_KEY and requires FIREWORKS_API_KEY" {
+  require_command setsid
+
+  export PSH_PROVIDER=fireworks
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"API key is required"* ]]
+}
+
 @test "unsupported provider exits 2 before contacting provider" {
   require_command setsid
 
