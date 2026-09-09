@@ -678,6 +678,18 @@ teardown() {
   [[ "$output" == *"run \`psh setup\` before changing only the model"* ]]
 }
 
+@test "setup model rejects unsupported provider in config" {
+  require_command script
+
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "nope", model: "x", api_key: "k"}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_pty n setup model
+
+  assert_status 2
+  [[ "$output" == *"unsupported provider in config: nope"* ]]
+}
+
 @test "setup rejects extra arguments" {
   require_command script
 
