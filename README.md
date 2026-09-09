@@ -167,10 +167,8 @@ make install-smoke
 - Use GitHub Issues for bugs and feature requests.
 - Report security vulnerabilities privately; see `SECURITY.md`.
 
-## Community
-
-Use common sense and decency. There is no formal code of conduct. We reserve the right to moderate this community to the extent of the law and the policy of the host. Write community@modoterra.xyz if you need us.
-
 ## License
 
-Prompt Shell is released under the MIT License. See `LICENSE`.
+MIT. See [LICENSE](LICENSE). Copyright (c) 2026 Christoffer Hallas.
+
+If you send a pull request or other contribution, you agree to the [CLA](CLA.md).
