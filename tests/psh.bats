@@ -212,6 +212,15 @@ teardown() {
   jq -e '(.messages[1].content | fromjson | .prompt) == "clean up docker"' "$request_file" >/dev/null
 }
 
+@test "empty prompt from stdin exits 2" {
+  require_command setsid
+
+  run psh_no_tty_stdin "" run
+
+  assert_status 2
+  [[ "$output" == *"empty prompt"* ]]
+}
+
 @test "hosted request uses deterministic decoding and tiny prompt context" {
   local request_file=$PSH_TEST_ROOT/request.json
 
