@@ -1,11 +1,15 @@
 # Contributing
 
-Prompt Shell is a small POSIX-style CLI. Contributions are welcome.
+By sending a pull request or otherwise contributing to Prompt Shell, you agree to the [CLA](CLA.md). Your contribution becomes the property of Christoffer Hallas.
+
+If you cannot make that assignment, do not contribute. If this is work for an employer, get permission first.
+
+Prompt Shell is licensed under the [MIT License](LICENSE).
 
 ## Getting Started
 
 ```sh
-git clone https://github.com/modoterra/promptshell.git
+git clone https://github.com/csfh/promptshell.git
 cd promptshell
 npm install
 ```
@@ -51,4 +55,4 @@ Use Conventional Commits, for example `feat:`, `fix:`, `docs:`, `test:`, or `cho
 
 ## Reporting Bugs
 
-Open an issue: https://github.com/modoterra/promptshell/issues
+Open an issue: https://github.com/csfh/promptshell/issues

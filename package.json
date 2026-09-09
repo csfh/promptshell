@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "devDependencies": {
     "bats": "1.13.0"
   }
