@@ -66,6 +66,21 @@ teardown() {
   grep -qx "exec '$payload' \"\$@\"" "$bin_home/psh"
 }
 
+@test "install writes bash completion for psh commands" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local completion=$data_home/bash-completion/completions/psh
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [ -f "$completion" ]
+  grep -q 'complete -F _psh psh' "$completion"
+  grep -q 'compgen -W "model"' "$completion"
+  grep -q 'compgen -W "--purge"' "$completion"
+  grep -q 'compgen -W "-v -vv -vvv run setup install update uninstall help --help"' "$completion"
+}
+
 @test "install reports config path and setup hint" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
