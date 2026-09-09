@@ -380,6 +380,18 @@ teardown() {
   [[ "$output" == *"API key is required"* ]]
 }
 
+@test "PSH_API_KEY is accepted as a fireworks key fallback" {
+  require_command setsid
+  mock_hosted_command true
+  export PSH_PROVIDER=fireworks
+  export PSH_API_KEY=fallback-key
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+}
+
 @test "unsupported provider exits 2 before contacting provider" {
   require_command setsid
 
