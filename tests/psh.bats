@@ -586,6 +586,15 @@ teardown() {
   jq -e '.provider == "codex" and .model == "gpt-5.4" and .api_key == ""' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
 }
 
+@test "setup can save a hosted provider API key" {
+  require_command script
+
+  run psh_pty $'\n\nsk-test\n' setup
+
+  assert_status 0
+  jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "sk-test"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
 @test "setup writes config with mode 600" {
   require_command script
 
