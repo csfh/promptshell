@@ -3570,6 +3570,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: Structured response"* ]]
 }
 
+@test "verbose -vv prints Model content debug" {
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -vv run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: Model content"* ]]
+}
+
 @test "verbose -vvv prints request JSON debug" {
   require_command setsid
   mock_hosted_command true
