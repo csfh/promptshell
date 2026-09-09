@@ -1532,6 +1532,24 @@ MOCK_WGET
   [ "$(<"$model_file")" = "gpt-5.5" ]
 }
 
+@test "codex receives a combined system prompt and user request" {
+  require_command setsid
+
+  local prompt_file=$PSH_TEST_ROOT/codex-prompt.txt
+
+  mock_codex_command true
+  export PSH_PROVIDER=codex
+  export PSH_CAPTURE_CODEX_PROMPT=$prompt_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [[ "$(<"$prompt_file")" == *"Convert natural language into one safe POSIX shell command"* ]]
+  [[ "$(<"$prompt_file")" == *$'\n\nUser request:\n'* ]]
+  awk 'f; $0 == "User request:" { f = 1 }' "$prompt_file" | jq -e '.prompt == "say hi"' >/dev/null
+}
+
 @test "codex falls back to raw output when JSONL has no agent message" {
   require_command setsid
 
