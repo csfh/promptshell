@@ -840,6 +840,22 @@ teardown() {
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "update reinstalls bash completion" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local completion=$data_home/bash-completion/completions/psh
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  rm -f "$completion"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"completion $completion"* ]]
+  [ -f "$completion" ]
+  grep -q 'complete -F _psh psh' "$completion"
+}
+
 @test "install honors PSH_INSTALL_NAME for the launcher" {
   local install_dir=$PSH_TEST_ROOT/install-bin
   local data_home=$PSH_TEST_ROOT/xdg-data
