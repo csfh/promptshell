@@ -954,6 +954,23 @@ teardown() {
   [[ "$output" == *"install.sh: curl or wget is required"* ]]
 }
 
+@test "piped install requires curl or wget" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local sh_bin
+
+  sh_bin=$(command -v sh)
+  mkdir -p "$limited"
+  ln -s "$(command -v mktemp)" "$limited/mktemp"
+  ln -s "$(command -v rm)" "$limited/rm"
+
+  run sh -c 'cat "$1" | PATH="$2" PSH_INSTALL_DIR="$3" XDG_DATA_HOME="$4" "$5" -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$limited" "$install_dir" "$data_home" "$sh_bin"
+
+  assert_status 2
+  [[ "$output" == *"psh install: curl or wget is required"* ]]
+}
+
 @test "setup without a tty exits 2" {
   require_command setsid
 
