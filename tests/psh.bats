@@ -517,6 +517,27 @@ EOF
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "piped install writes bash completion for psh commands" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local raw_base=https://example.test/promptshell
+  local completion=$data_home/bash-completion/completions/psh
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run sh -c 'cat "$1" | PSH_INSTALL_DIR="$2" XDG_DATA_HOME="$3" PSH_RAW_BASE="$4" sh -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$install_dir" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [ -f "$completion" ]
+  grep -q 'complete -F _psh psh' "$completion"
+  grep -q 'compgen -W "model"' "$completion"
+  grep -q 'compgen -W "--purge"' "$completion"
+  grep -q 'compgen -W "-v -vv -vvv run setup install update uninstall help --help"' "$completion"
+}
+
 @test "piped install downloads from the default GitHub raw URL" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
