@@ -1001,36 +1001,15 @@ provider_label() {
 }
 
 provider_from_choice() {
-  case $1 in
-    1|openai|OpenAI|OPENAI)
-      printf 'openai\n'
-      ;;
-    2|fireworks|Fireworks|FIREWORKS)
-      printf 'fireworks\n'
-      ;;
-    3|codex|Codex|CODEX)
-      printf 'codex\n'
-      ;;
-    grok|Grok|GROK)
-      printf 'grok\n'
-      ;;
-    claude|Claude|CLAUDE)
-      printf 'claude\n'
-      ;;
-    gemini|Gemini|GEMINI)
-      printf 'gemini\n'
-      ;;
-    *)
-      for id in openai fireworks $(cli_provider_ids); do
-        label=$(provider_label "$id" 2>/dev/null || true)
-        if [ "$1" = "$id" ] || { [ -n "$label" ] && [ "$1" = "$label" ]; }; then
-          printf '%s\n' "$id"
-          return 0
-        fi
-      done
-      return 1
-      ;;
-  esac
+  for id in openai fireworks $(cli_provider_ids); do
+    label=$(provider_label "$id" 2>/dev/null || true)
+    if [ "$1" = "$id" ] || { [ -n "$label" ] && [ "$1" = "$label" ]; }; then
+      printf '%s\n' "$id"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 provider_default_model() {
