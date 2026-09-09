@@ -159,6 +159,17 @@ teardown() {
   [[ "$output" == *"API key is required"* ]]
 }
 
+@test "unsupported provider exits 2 before contacting provider" {
+  require_command setsid
+
+  export PSH_PROVIDER=nope
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"unsupported provider: nope"* ]]
+}
+
 @test "non-interactive run prints only the generated command" {
   require_command setsid
 
