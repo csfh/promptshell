@@ -233,6 +233,15 @@ teardown() {
   [[ "$output" == *"empty prompt"* ]]
 }
 
+@test "empty prompt argv exits 2" {
+  require_command setsid
+
+  run psh_no_tty run ""
+
+  assert_status 2
+  [[ "$output" == *"empty prompt"* ]]
+}
+
 @test "interactive run without a prompt prints usage" {
   require_command script
 
