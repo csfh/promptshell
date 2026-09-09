@@ -750,6 +750,31 @@ teardown() {
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "install.sh succeeds without HOME when checkout payload is missing and PSH_INSTALL_DIR is set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local raw_base=https://example.test/promptshell
+
+  mkdir -p "$installer_dir"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env -u HOME PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" bash "$installer_dir/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$install_dir/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "install.sh downloads from the default GitHub raw URL when checkout payload is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
