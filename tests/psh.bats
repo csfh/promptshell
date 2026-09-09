@@ -1174,6 +1174,21 @@ teardown() {
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "install succeeds without HOME when PSH_INSTALL_DIR is set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+
+  run env -u HOME PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$install_dir/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "piped install.sh requires curl or wget" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
