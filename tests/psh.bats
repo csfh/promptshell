@@ -902,6 +902,22 @@ teardown() {
   jq -e '.model == "gpt-4o-mini"' "$request_file" >/dev/null
 }
 
+@test "OPENAI_MODEL overrides PSH_MODEL" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export OPENAI_MODEL=gpt-4.1
+  export PSH_MODEL=gpt-4o-mini
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '.model == "gpt-4.1"' "$request_file" >/dev/null
+}
+
 @test "PSH_MODEL overrides saved config model" {
   local request_file=$PSH_TEST_ROOT/request.json
 
