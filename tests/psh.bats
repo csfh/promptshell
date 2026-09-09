@@ -728,6 +728,18 @@ teardown() {
   [[ "$output" == *"run \`psh setup\` before changing only the model"* ]]
 }
 
+@test "setup model without saved API key exits 2" {
+  require_command script
+
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: ""}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_pty n setup model
+
+  assert_status 2
+  [[ "$output" == *"run \`psh setup\` before changing only the model"* ]]
+}
+
 @test "setup model rejects unsupported provider in config" {
   require_command script
 
