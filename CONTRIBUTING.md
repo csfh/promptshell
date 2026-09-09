@@ -23,7 +23,7 @@ bin/psh.sh --help
 ## Running Tests
 
 ```sh
-make test
+just test
 ```
 
 The test suite uses the npm-installed Bats runner at `node_modules/bats/bin/bats`.
@@ -31,12 +31,12 @@ The test suite uses the npm-installed Bats runner at `node_modules/bats/bin/bats
 Run the installer smoke check:
 
 ```sh
-make install-smoke
+just install-smoke
 ```
 
 ## Code Style
 
-- POSIX shell for the CLI, including integrated install/uninstall commands.
+- POSIX shell for the CLI. Standalone PATH install is `install.sh` (bash) and does not require Omarchy. Omarchy plugin install is `omarchy plugin add` / `omarchy plugin install`. The bar widget launches bundled `bin/psh.sh`.
 - Keep changes small and focused.
 - Preserve stdin/stdout composition and scriptability.
 - Use `/dev/tty` for interactive-only UI.

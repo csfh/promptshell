@@ -31,6 +31,8 @@ setup_psh_test() {
   unset PSH_RAW_BASE
   unset PSH_EXPECT_INSTALL_SOURCE
   unset PSH_INSTALL_SOURCE_FILE
+  unset XDG_DATA_HOME
+  unset XDG_BIN_HOME
 }
 
 teardown_psh_test() {

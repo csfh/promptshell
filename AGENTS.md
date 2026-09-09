@@ -10,9 +10,9 @@
 - Preserve normal CLI behavior expectations: stdin/stdout composition, scriptability, and minimal surprise for shell users.
 
 ## Current Repo State
-- Current entrypoint and installer are `bin/psh.sh`.
+- Current entrypoint is `bin/psh.sh`. Standalone CLI install is `install.sh` (XDG only) and does not require Omarchy. Omarchy install is `omarchy plugin add`; the bar widget launches bundled `bin/psh.sh`, so a PATH install is optional there.
 - Tests live in `tests/` and use the npm-installed Bats runner at `node_modules/bats/bin/bats`.
-- `Makefile` provides `make test` and `make install-smoke` shortcuts.
+- `justfile` provides `just test` and `just install-smoke` shortcuts.
 - Do not invent build/lint commands until the relevant executable config exists.
 
 ## Verification
@@ -21,8 +21,8 @@
 - Interactive terminal dependency check: `command -v dd && command -v stty`.
 - Bats test dependency check: `test -x node_modules/bats/bin/bats && command -v setsid && command -v script`.
 - Bats test suite: `node_modules/bats/bin/bats tests`.
-- Make test shortcut: `make test`.
-- Local installer smoke check: `PSH_INSTALL_DIR=$(mktemp -d) sh bin/psh.sh install` installs `psh` into the temp directory.
+- Just test shortcut: `just test`.
+- Local installer smoke check: `XDG_DATA_HOME=$(mktemp -d) PSH_INSTALL_DIR=$(mktemp -d) bash install.sh` writes the payload under `XDG_DATA_HOME/psh` and the launcher into the temp bin directory.
 - Dependency check without API key or config: `XDG_CONFIG_HOME=$(mktemp -d) bin/psh.sh run clean up docker` exits 2 with `psh: API key is required; run \`psh setup\` or set provider API key env var`.
 - Smoke checks with OpenAI access: `OPENAI_API_KEY=... bin/psh.sh run clean up docker`, `OPENAI_API_KEY=... bin/psh.sh clean up docker`, and `printf %s "clean up docker" | OPENAI_API_KEY=... bin/psh.sh run` verify prompt ingestion and command generation.
 - Smoke check with Fireworks access: `PSH_PROVIDER=fireworks FIREWORKS_API_KEY=... bin/psh.sh run clean up docker` verifies Fireworks command generation.

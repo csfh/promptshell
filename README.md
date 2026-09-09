@@ -10,31 +10,44 @@ printf %s "clean up docker" | psh run
 
 ## Install
 
-Install with curl:
+**CLI** — standalone. Does not require Omarchy.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/csfh/promptshell/main/install.sh | bash
 ```
 
-The `-s` flag tells `sh` to read the downloaded script from stdin and pass `install` to `psh`.
-
-Or with wget:
+From a checkout:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | sh -s -- install
+bash install.sh
 ```
 
-By default, the installer writes `psh` to `$HOME/.local/bin`. Override the destination with `PSH_INSTALL_DIR`:
+Layout:
+
+- Payload: `${XDG_DATA_HOME:-$HOME/.local/share}/psh/psh.sh`
+- Launcher: `${XDG_BIN_HOME:-$HOME/.local/bin}/psh` (override with `PSH_INSTALL_DIR`)
+- Bash completion: `${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion/completions/psh`
+- Config: `${XDG_CONFIG_HOME:-$HOME/.config}/psh/config.json`
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/modoterra/promptshell/main/bin/psh.sh | PSH_INSTALL_DIR=/usr/local/bin sh -s -- install
+curl -fsSL https://raw.githubusercontent.com/csfh/promptshell/main/install.sh | PSH_INSTALL_DIR=/usr/local/bin bash
 ```
 
-Uninstall the installed `psh` binary:
+Refresh an existing CLI install:
 
 ```sh
-psh uninstall
+psh update
 ```
+
+Remove the CLI with `psh uninstall` (add `--purge` to drop config).
+
+**Omarchy** — bar widget. It runs the bundled CLI from the plugin checkout, so Omarchy users do not need a PATH install. The CLI install above still works on Omarchy if you want `psh` in a regular terminal.
+
+```sh
+omarchy plugin add https://github.com/csfh/promptshell.git --enable
+```
+
+`omarchy plugin install` is an alias of `omarchy plugin add`. Enable later with `omarchy plugin enable com.csfh.promptshell` if you omit `--enable`. Remove the plugin with `omarchy plugin remove com.csfh.promptshell`.
 
 ## Requirements
 
@@ -152,13 +165,13 @@ npm install
 Run syntax checks and the Bats integration suite:
 
 ```sh
-make test
+just test
 ```
 
 Run the local installer smoke check:
 
 ```sh
-make install-smoke
+just install-smoke
 ```
 
 ## Contributing

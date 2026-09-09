@@ -10,7 +10,8 @@ usage() {
   printf '       psh [-v|-vv|-vvv] setup\n'
   printf '       psh [-v|-vv|-vvv] setup model\n'
   printf '       psh install\n'
-  printf '       psh uninstall\n'
+  printf '       psh update\n'
+  printf '       psh uninstall [--purge]\n'
 }
 
 config_file() {
@@ -24,18 +25,72 @@ require_jq() {
   fi
 }
 
-resolve_install_dir() {
+require_home() {
   action=$1
 
-  if [ -z "${PSH_INSTALL_DIR:-}" ]; then
-    if [ -z "${HOME:-}" ]; then
-      printf 'psh %s: HOME is required unless PSH_INSTALL_DIR is set\n' "$action" >&2
-      exit 2
-    fi
+  if [ -z "${HOME:-}" ]; then
+    printf 'psh %s: HOME is required unless install path env vars are set\n' "$action" >&2
+    exit 2
+  fi
+}
 
-    printf '%s/.local/bin\n' "$HOME"
-  else
+xdg_data_home() {
+  if [ -n "${XDG_DATA_HOME:-}" ]; then
+    printf '%s\n' "$XDG_DATA_HOME"
+    return 0
+  fi
+
+  require_home "$1"
+  printf '%s/.local/share\n' "$HOME"
+}
+
+xdg_bin_home() {
+  if [ -n "${PSH_INSTALL_DIR:-}" ]; then
     printf '%s\n' "$PSH_INSTALL_DIR"
+    return 0
+  fi
+
+  if [ -n "${XDG_BIN_HOME:-}" ]; then
+    printf '%s\n' "$XDG_BIN_HOME"
+    return 0
+  fi
+
+  require_home "$1"
+  printf '%s/.local/bin\n' "$HOME"
+}
+
+payload_dir() {
+  printf '%s/psh\n' "$(xdg_data_home "$1")"
+}
+
+payload_path() {
+  printf '%s/psh.sh\n' "$(payload_dir "$1")"
+}
+
+launcher_path() {
+  printf '%s/%s\n' "$(xdg_bin_home "$1")" "${PSH_INSTALL_NAME:-psh}"
+}
+
+completion_path() {
+  printf '%s/bash-completion/completions/psh\n' "$(xdg_data_home "$1")"
+}
+
+shell_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+install_file() {
+  inst_src=$1
+  inst_dst=$2
+  inst_mode=${3:-0755}
+
+  mkdir -p "$(dirname "$inst_dst")"
+
+  if command -v install >/dev/null 2>&1; then
+    install -m "$inst_mode" "$inst_src" "$inst_dst"
+  else
+    cp "$inst_src" "$inst_dst"
+    chmod "$inst_mode" "$inst_dst"
   fi
 }
 
@@ -66,7 +121,7 @@ resolve_current_script() {
 
 download_install_source() {
   destination=$1
-  repo_raw_base=${PSH_RAW_BASE:-https://raw.githubusercontent.com/modoterra/promptshell/main}
+  repo_raw_base=${PSH_RAW_BASE:-https://raw.githubusercontent.com/csfh/promptshell/main}
   source_url=$repo_raw_base/bin/psh.sh
 
   if command -v curl >/dev/null 2>&1; then
@@ -79,15 +134,54 @@ download_install_source() {
   fi
 }
 
-install_command() {
-  if [ "$#" -gt 0 ]; then
-    usage >&2
-    exit 2
-  fi
+write_launcher() {
+  launcher_payload=$1
+  launcher_dst=$2
+  launcher_tmp=$(mktemp)
 
-  install_dir=$(resolve_install_dir install)
-  install_name=${PSH_INSTALL_NAME:-psh}
-  target=$install_dir/$install_name
+  printf '#!/bin/sh\nexec %s "$@"\n' "$(shell_quote "$launcher_payload")" >"$launcher_tmp"
+  install_file "$launcher_tmp" "$launcher_dst" 0755
+  rm -f "$launcher_tmp"
+}
+
+write_bash_completion() {
+  completion_dst=$1
+  completion_tmp=$(mktemp)
+
+  cat >"$completion_tmp" <<'EOF'
+_psh() {
+  local cur prev
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  prev=${COMP_WORDS[COMP_CWORD-1]}
+
+  case $prev in
+    setup)
+      COMPREPLY=($(compgen -W "model" -- "$cur"))
+      return 0
+      ;;
+    uninstall)
+      COMPREPLY=($(compgen -W "--purge" -- "$cur"))
+      return 0
+      ;;
+  esac
+
+  if [ "$COMP_CWORD" -eq 1 ]; then
+    COMPREPLY=($(compgen -W "-v -vv -vvv run setup install update uninstall help --help" -- "$cur"))
+  fi
+}
+
+complete -F _psh psh
+EOF
+
+  install_file "$completion_tmp" "$completion_dst" 0644
+  rm -f "$completion_tmp"
+}
+
+install_xdg() {
+  payload=$(payload_path install)
+  launcher=$(launcher_path install)
+  completion=$(completion_path install)
   install_tmp=$(mktemp)
 
   trap 'rm -f "$install_tmp"' EXIT HUP INT TERM
@@ -99,50 +193,109 @@ install_command() {
     download_install_source "$install_tmp"
   fi
 
-  mkdir -p "$install_dir"
-
-  if command -v install >/dev/null 2>&1; then
-    install -m 0755 "$install_tmp" "$target"
-  else
-    cp "$install_tmp" "$target"
-    chmod 0755 "$target"
-  fi
+  install_file "$install_tmp" "$payload" 0755
+  write_launcher "$payload" "$launcher"
+  write_bash_completion "$completion"
 
   rm -f "$install_tmp"
   trap - EXIT HUP INT TERM
 
-  printf 'psh install: installed %s\n' "$target"
+  printf 'psh install: payload %s\n' "$payload"
+  printf 'psh install: launcher %s\n' "$launcher"
+  printf 'psh install: config %s\n' "$(config_file)"
+  printf 'psh install: completion %s\n' "$completion"
+  printf 'psh install: run `psh setup` before the first hosted-provider request\n'
 
+  bin_dir=$(xdg_bin_home install)
   case :$PATH: in
-    *:"$install_dir":*) ;;
+    *:"$bin_dir":*) ;;
     *)
-      printf 'psh install: add %s to PATH to run `psh` directly\n' "$install_dir"
+      printf 'psh install: add %s to PATH to run `psh` directly\n' "$bin_dir"
       ;;
   esac
 }
 
-uninstall_command() {
+install_command() {
   if [ "$#" -gt 0 ]; then
     usage >&2
     exit 2
   fi
 
-  install_dir=$(resolve_install_dir uninstall)
-  install_name=${PSH_INSTALL_NAME:-psh}
-  target=$install_dir/$install_name
+  install_xdg
+}
 
-  if [ -d "$target" ]; then
-    printf 'psh uninstall: expected a file at %s\n' "$target" >&2
+update_command() {
+  if [ "$#" -gt 0 ]; then
+    usage >&2
+    exit 2
+  fi
+
+  install_xdg
+}
+
+uninstall_command() {
+  purge=0
+
+  while [ "$#" -gt 0 ]; do
+    case $1 in
+      --purge)
+        purge=1
+        shift
+        ;;
+      *)
+        usage >&2
+        exit 2
+        ;;
+    esac
+  done
+
+  launcher=$(launcher_path uninstall)
+  payload=$(payload_path uninstall)
+  completion=$(completion_path uninstall)
+  data_dir=$(payload_dir uninstall)
+  removed=0
+
+  if [ -d "$launcher" ]; then
+    printf 'psh uninstall: expected a file at %s\n' "$launcher" >&2
     exit 1
   fi
 
-  if [ ! -f "$target" ] && [ ! -L "$target" ]; then
-    printf 'psh uninstall: not installed at %s\n' "$target"
-    return 0
+  if [ -f "$launcher" ] || [ -L "$launcher" ]; then
+    rm -f "$launcher"
+    printf 'psh uninstall: removed %s\n' "$launcher"
+    removed=1
   fi
 
-  rm -f "$target"
-  printf 'psh uninstall: removed %s\n' "$target"
+  if [ -f "$payload" ] || [ -L "$payload" ]; then
+    rm -f "$payload"
+    printf 'psh uninstall: removed %s\n' "$payload"
+    removed=1
+  fi
+
+  if [ -f "$completion" ] || [ -L "$completion" ]; then
+    rm -f "$completion"
+    printf 'psh uninstall: removed %s\n' "$completion"
+    removed=1
+  fi
+
+  if [ -d "$data_dir" ]; then
+    rmdir "$data_dir" 2>/dev/null || true
+  fi
+
+  if [ "$purge" -eq 1 ]; then
+    config=$(config_file)
+    config_dir=$(dirname "$config")
+    if [ -f "$config" ]; then
+      rm -f "$config"
+      printf 'psh uninstall: removed %s\n' "$config"
+      removed=1
+    fi
+    rmdir "$config_dir" 2>/dev/null || true
+  fi
+
+  if [ "$removed" -eq 0 ]; then
+    printf 'psh uninstall: not installed at %s\n' "$launcher"
+  fi
 }
 
 terminal_printf() {
@@ -1570,7 +1723,7 @@ dispatch_command() {
 
   requested_command=$1
   case $requested_command in
-    run|setup|install|uninstall|help|-h|--help)
+    run|setup|install|update|uninstall|help|-h|--help)
       shift
       ;;
     *)
@@ -1587,6 +1740,9 @@ dispatch_command() {
       ;;
     install)
       install_command "$@"
+      ;;
+    update)
+      update_command "$@"
       ;;
     uninstall)
       uninstall_command "$@"
