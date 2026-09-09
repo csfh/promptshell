@@ -728,6 +728,21 @@ teardown() {
   [ "$output" = true ]
 }
 
+@test "saved config provider is used when PSH_PROVIDER is unset" {
+  local url_file=$PSH_TEST_ROOT/url.txt
+
+  require_command setsid
+  mock_hosted_command true
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "fireworks", model: "", api_key: "from-config"}' >"$XDG_CONFIG_HOME/psh/config.json"
+  export PSH_CAPTURE_URL=$url_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$(<"$url_file")" = "https://api.fireworks.ai/inference/v1/chat/completions" ]
+}
+
 @test "openai hosted URL is used by default" {
   local url_file=$PSH_TEST_ROOT/url.txt
 
