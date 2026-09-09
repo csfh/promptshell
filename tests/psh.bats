@@ -3626,6 +3626,17 @@ MOCK_WGET
   [[ "$output" == *"psh debug: Codex JSONL"* ]]
 }
 
+@test "verbose -vvv prints Harness JSON debug" {
+  require_command setsid
+  mock_grok_command true
+  export PSH_PROVIDER=grok
+
+  run psh_no_tty -vvv run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: Harness JSON"* ]]
+}
+
 @test "double dash ends verbosity flags" {
   local request_file=$PSH_TEST_ROOT/request.json
 
