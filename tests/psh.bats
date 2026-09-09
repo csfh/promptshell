@@ -3052,6 +3052,25 @@ MOCK_WGET
   assert_status 0
 }
 
+@test "interactive clarification Custom option uses the typed answer" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command script
+
+  install_mock_curl_queue \
+    "$(chat_completion '{"type":"question","question":"Which target?","options":["Docker","Images"]}')" \
+    "$(chat_completion "$(command_json true)")"
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_pty $'\033[B\033[B\ncustom-target\n' run clean
+
+  assert_status 1
+  jq -e '
+    (.messages[1].content | fromjson | .prompt) | test("Clarification: Which target?") and test("Answer: custom-target")
+  ' "$request_file" >/dev/null
+}
+
 @test "too many clarification rounds exits 1" {
   require_command script
   mock_hosted_question
