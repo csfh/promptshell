@@ -1924,6 +1924,24 @@ MOCK_WGET
   grep -q 'usage: psh' "$data_home/psh/psh.sh"
 }
 
+@test "update uses HOME local share when XDG_DATA_HOME is empty" {
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  printf 'stale\n' >"$HOME/.local/share/psh/psh.sh"
+
+  run env XDG_DATA_HOME= XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" update
+
+  assert_status 0
+  [[ "$output" == *"payload $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
+  grep -q 'usage: psh' "$HOME/.local/share/psh/psh.sh"
+}
+
 @test "install completion stays named psh when launcher name changes" {
   local install_dir=$PSH_TEST_ROOT/install-bin
   local data_home=$PSH_TEST_ROOT/xdg-data
