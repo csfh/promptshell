@@ -3662,6 +3662,33 @@ MOCK_WGET
   grep -q 'downloaded-source-marker' "$data_home/psh/psh.sh"
 }
 
+@test "update requires curl or wget when the script is not named psh" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local renamed=$PSH_TEST_ROOT/promptshell
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local sh_bin
+  local cmd
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+  printf 'stale\n' >"$data_home/psh/psh.sh"
+
+  sh_bin=$(command -v sh)
+  mkdir -p "$limited"
+  cp "$PSH_REPO_ROOT/bin/psh.sh" "$renamed"
+
+  for cmd in mktemp rm; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  run env PATH="$limited" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$sh_bin" "$renamed" update
+
+  assert_status 2
+  [[ "$output" == *"psh install: curl or wget is required"* ]]
+  grep -q '^stale$' "$data_home/psh/psh.sh"
+}
+
 @test "update installs when nothing is already installed" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
