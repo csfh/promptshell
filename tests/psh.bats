@@ -596,6 +596,21 @@ teardown() {
   [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
 }
 
+@test "install succeeds without HOME when XDG install paths are set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env -u HOME XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [[ "$output" == *"completion $data_home/bash-completion/completions/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$bin_home/psh" ]
+  [ -f "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "setup without a tty exits 2" {
   require_command setsid
 
