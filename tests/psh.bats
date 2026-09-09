@@ -673,6 +673,16 @@ EOF
   [[ "$output" == *"run \`psh setup\` before the first hosted-provider request"* ]]
 }
 
+@test "install.sh reports config under HOME/.config when XDG_CONFIG_HOME is unset" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env -u XDG_CONFIG_HOME XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"config $HOME/.config/psh/config.json"* ]]
+}
+
 @test "install.sh from a checkout does not download psh" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
