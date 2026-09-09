@@ -1680,6 +1680,26 @@ EOF
   [[ "$output" != *"add $bin_home to PATH to run \`psh\` directly"* ]]
 }
 
+@test "install.sh hints when PSH_INSTALL_DIR is not on PATH when checkout payload is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local raw_base=https://example.test/promptshell
+
+  mkdir -p "$installer_dir"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" bash "$installer_dir/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"add $install_dir to PATH to run \`psh\` directly"* ]]
+}
+
 @test "install.sh falls back to HOME local share and bin directories when checkout payload is missing" {
   local installer_dir=$PSH_TEST_ROOT/standalone
   local raw_base=https://example.test/promptshell
