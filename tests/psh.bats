@@ -460,6 +460,33 @@ teardown() {
   [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/com.csfh.promptshell" ]
 }
 
+@test "install.sh from a checkout does not download psh" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  cat >"$PSH_MOCK_BIN/curl" <<'EOF'
+#!/bin/sh
+printf 'curl should not be called for checkout install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/curl"
+
+  cat >"$PSH_MOCK_BIN/wget" <<'EOF'
+#!/bin/sh
+printf 'wget should not be called for checkout install\n' >&2
+exit 1
+EOF
+  chmod +x "$PSH_MOCK_BIN/wget"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+  grep -q 'usage: psh' "$data_home/psh/psh.sh"
+}
+
 @test "install.sh from a checkout falls back to HOME local share and bin directories" {
   run bash "$PSH_REPO_ROOT/install.sh"
 
