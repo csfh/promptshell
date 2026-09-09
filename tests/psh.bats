@@ -54,6 +54,17 @@ teardown() {
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "install reports config path and setup hint" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [[ "$output" == *"config $XDG_CONFIG_HOME/psh/config.json"* ]]
+  [[ "$output" == *"run \`psh setup\` before the first hosted-provider request"* ]]
+}
+
 @test "install hints when launcher directory is not on PATH" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
