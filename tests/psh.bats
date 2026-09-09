@@ -1170,6 +1170,67 @@ MOCK_WGET
   [[ "$output" == *"psh install: curl or wget is required"* ]]
 }
 
+@test "piped install uses wget when curl is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/pipe-install-bin
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local sh_bin
+  local raw_base=https://example.test/promptshell
+  local cmd
+
+  sh_bin=$(command -v sh)
+  mkdir -p "$limited"
+  for cmd in mktemp rm mkdir chmod cp dirname sed install sh basename cat; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  cat >"$limited/wget" <<'MOCK_WGET'
+#!/bin/sh
+
+out=
+url=
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    -qO)
+      shift
+      out=${1:-}
+      ;;
+    http*)
+      url=$1
+      ;;
+  esac
+  shift || break
+done
+
+if [ -n "${PSH_EXPECT_INSTALL_SOURCE:-}" ] && [ "$url" != "$PSH_EXPECT_INSTALL_SOURCE" ]; then
+  printf 'unexpected install source: %s\n' "$url" >&2
+  exit 2
+fi
+
+if [ -z "${PSH_INSTALL_SOURCE_FILE:-}" ]; then
+  printf 'missing PSH_INSTALL_SOURCE_FILE\n' >&2
+  exit 2
+fi
+
+[ -n "$out" ] || exit 2
+cp "$PSH_INSTALL_SOURCE_FILE" "$out"
+MOCK_WGET
+  chmod +x "$limited/wget"
+
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run sh -c 'cat "$1" | PATH="$2" PSH_INSTALL_DIR="$3" XDG_DATA_HOME="$4" PSH_RAW_BASE="$5" "$6" -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$limited" "$install_dir" "$data_home" "$raw_base" "$sh_bin"
+
+  assert_status 0
+  [[ "$output" == *"launcher $install_dir/psh"* ]]
+  [ -x "$install_dir/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+}
+
 @test "setup without a tty exits 2" {
   require_command setsid
 
