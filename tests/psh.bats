@@ -1550,6 +1550,26 @@ MOCK_WGET
   jq -e --arg os "$(uname -s)" '(.messages[1].content | fromjson | .os) == $os' "$request_file" >/dev/null
 }
 
+@test "hosted request prompt context includes the package manager" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export OPENAI_API_KEY=dummy
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  cat >"$PSH_MOCK_BIN/brew" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "$PSH_MOCK_BIN/brew"
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '(.messages[1].content | fromjson | .package_manager) == "brew"' "$request_file" >/dev/null
+}
+
 @test "non-interactive clarification exits 2 and shows available options" {
   require_command setsid
 
