@@ -567,6 +567,18 @@ teardown() {
   [[ "$output" == *"not installed at $bin_home/psh"* ]]
 }
 
+@test "uninstall rejects a launcher directory" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  mkdir -p "$bin_home/psh"
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 1
+  [[ "$output" == *"expected a file at $bin_home/psh"* ]]
+}
+
 @test "update reinstalls launcher and payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
