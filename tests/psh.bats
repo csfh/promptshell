@@ -54,6 +54,18 @@ teardown() {
   [[ "$output" == *"usage: psh"* ]]
 }
 
+@test "install writes payload launcher and completion modes" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install
+
+  assert_status 0
+  [ "$(stat -c '%a' "$data_home/psh/psh.sh")" = 755 ]
+  [ "$(stat -c '%a' "$bin_home/psh")" = 755 ]
+  [ "$(stat -c '%a' "$data_home/bash-completion/completions/psh")" = 644 ]
+}
+
 @test "install launcher execs the XDG payload" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
