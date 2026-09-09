@@ -2165,6 +2165,15 @@ EOF
   [[ "$output" != *"API key is required"* ]]
 }
 
+@test "double dash without a command prints usage and exits 2" {
+  require_command setsid
+
+  run psh_no_tty --
+
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "verbose --help still prints usage" {
   run psh -v --help
 
