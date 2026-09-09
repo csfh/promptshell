@@ -701,6 +701,21 @@ EOF
   grep -qx "exec '$payload' \"\$@\"" "$bin_home/psh"
 }
 
+@test "install.sh launcher quotes payload path with apostrophes" {
+  local data_home="$PSH_TEST_ROOT/xdg-data/o's"
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  grep -F "exec '$(printf '%s' "$data_home/psh/psh.sh" | sed "s/'/'\\\\''/g")' \"\$@\"" "$bin_home/psh"
+
+  run "$bin_home/psh" --help
+
+  assert_status 0
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "install.sh reports config path and setup hint" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
