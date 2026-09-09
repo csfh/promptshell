@@ -1679,6 +1679,20 @@ MOCK_WGET
   [[ "$(<"$argv_file")" != *"--yolo"* ]]
 }
 
+@test "gemini falls back to raw output when JSON response field is missing" {
+  require_command setsid
+
+  install_mock_harness gemini
+  PSH_HARNESS_OUTPUT=$(command_json true)
+  export PSH_HARNESS_OUTPUT
+  export PSH_PROVIDER=gemini
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+}
+
 @test "codex provider passes configured model with -m" {
   require_command setsid
 
