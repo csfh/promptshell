@@ -2071,6 +2071,13 @@ EOF
   [[ "$output" != *"API key is required"* ]]
 }
 
+@test "verbose --help still prints usage" {
+  run psh -v --help
+
+  assert_status 0
+  [[ "$output" == *"usage: psh"* ]]
+}
+
 @test "install rejects extra arguments" {
   run psh install extra
 
