@@ -157,6 +157,18 @@ teardown() {
   [ -f "$config_dir/config.json" ]
 }
 
+@test "uninstall removes empty payload directory" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [ ! -e "$data_home/psh" ]
+}
+
 @test "uninstall --purge removes config" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
