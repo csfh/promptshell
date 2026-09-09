@@ -1242,6 +1242,20 @@ teardown() {
   [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
 }
 
+@test "uninstall falls back to HOME local share and bin directories" {
+  psh install >/dev/null
+
+  run psh uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $HOME/.local/bin/psh"* ]]
+  [[ "$output" == *"removed $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"removed $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ ! -e "$HOME/.local/bin/psh" ]
+  [ ! -e "$HOME/.local/share/psh/psh.sh" ]
+  [ ! -e "$HOME/.local/share/bash-completion/completions/psh" ]
+}
+
 @test "install succeeds without HOME when XDG install paths are set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
