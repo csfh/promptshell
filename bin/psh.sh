@@ -936,6 +936,20 @@ config_value() {
   fi
 }
 
+write_config() {
+  file=$(config_file)
+  dir=${file%/*}
+
+  mkdir -p "$dir"
+  jq -n \
+    --arg provider "$1" \
+    --arg model "$2" \
+    --arg api_key "$3" \
+    '{provider: $provider, model: $model, api_key: $api_key}' >"$file"
+  chmod 600 "$file"
+  printf '%s\n' "$file"
+}
+
 cli_provider_ids() {
   printf '%s\n' codex grok claude gemini
 }
@@ -1476,17 +1490,7 @@ setup() {
     exit 2
   fi
 
-  file=$(config_file)
-  dir=${file%/*}
-
-  mkdir -p "$dir"
-  jq -n \
-    --arg provider "$provider" \
-    --arg model "$model" \
-    --arg api_key "$api_key" \
-    '{provider: $provider, model: $model, api_key: $api_key}' >"$file"
-  chmod 600 "$file"
-
+  file=$(write_config "$provider" "$model" "$api_key")
   log_info "saved config to $file"
 }
 
@@ -1520,17 +1524,7 @@ setup_model() {
     exit 2
   fi
 
-  file=$(config_file)
-  dir=${file%/*}
-
-  mkdir -p "$dir"
-  jq -n \
-    --arg provider "$existing_provider" \
-    --arg model "$model" \
-    --arg api_key "$existing_api_key" \
-    '{provider: $provider, model: $model, api_key: $api_key}' >"$file"
-  chmod 600 "$file"
-
+  file=$(write_config "$existing_provider" "$model" "$existing_api_key")
   log_info "saved model to $file"
 }
 
