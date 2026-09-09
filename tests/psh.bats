@@ -830,6 +830,18 @@ teardown() {
   [[ "$output" == *"run \`psh setup\` before changing only the model"* ]]
 }
 
+@test "setup model can change a CLI provider model without an API key" {
+  require_command script
+
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "codex", model: "gpt-5.5", api_key: ""}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_pty $'\033[B\n' setup model
+
+  assert_status 0
+  jq -e '.provider == "codex" and .model == "gpt-5.4" and .api_key == ""' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
 @test "setup model rejects unsupported provider in config" {
   require_command script
 
