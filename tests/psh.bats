@@ -1058,6 +1058,23 @@ teardown() {
   jq -e '.model == "gpt-4.1"' "$request_file" >/dev/null
 }
 
+@test "FIREWORKS_MODEL overrides PSH_MODEL" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  export PSH_PROVIDER=fireworks
+  export FIREWORKS_API_KEY=dummy
+  export FIREWORKS_MODEL=accounts/fireworks/models/deepseek-r1
+  export PSH_MODEL=accounts/fireworks/models/deepseek-v3p1
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '.model == "accounts/fireworks/models/deepseek-r1"' "$request_file" >/dev/null
+}
+
 @test "PSH_MODEL overrides saved config model" {
   local request_file=$PSH_TEST_ROOT/request.json
 
