@@ -483,6 +483,24 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "piped install uses HOME local bin when XDG_BIN_HOME is empty" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local raw_base=https://example.test/promptshell
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run sh -c 'cat "$1" | XDG_BIN_HOME= XDG_DATA_HOME="$2" PSH_RAW_BASE="$3" sh -s -- install' sh "$PSH_REPO_ROOT/bin/psh.sh" "$data_home" "$PSH_RAW_BASE"
+
+  assert_status 0
+  [[ "$output" == *"payload $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [ -x "$data_home/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+}
+
 @test "piped install succeeds without HOME when PSH_INSTALL_DIR is set" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
