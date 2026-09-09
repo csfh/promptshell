@@ -430,6 +430,68 @@ teardown() {
   [ -x "$data_home/psh/psh.sh" ]
 }
 
+@test "install.sh uses wget when checkout payload is missing" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local limited=$PSH_TEST_ROOT/limited-bin
+  local raw_base=https://example.test/promptshell
+  local cmd
+
+  mkdir -p "$installer_dir" "$limited"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  for cmd in bash mktemp rm mkdir chmod cp dirname sed install sh basename cat; do
+    command -v "$cmd" >/dev/null 2>&1 || continue
+    ln -s "$(command -v "$cmd")" "$limited/$cmd"
+  done
+
+  cat >"$limited/wget" <<'MOCK_WGET'
+#!/bin/sh
+
+out=
+url=
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    -qO)
+      shift
+      out=${1:-}
+      ;;
+    http*)
+      url=$1
+      ;;
+  esac
+  shift || break
+done
+
+if [ -n "${PSH_EXPECT_INSTALL_SOURCE:-}" ] && [ "$url" != "$PSH_EXPECT_INSTALL_SOURCE" ]; then
+  printf 'unexpected install source: %s\n' "$url" >&2
+  exit 2
+fi
+
+if [ -z "${PSH_INSTALL_SOURCE_FILE:-}" ]; then
+  printf 'missing PSH_INSTALL_SOURCE_FILE\n' >&2
+  exit 2
+fi
+
+[ -n "$out" ] || exit 2
+cp "$PSH_INSTALL_SOURCE_FILE" "$out"
+MOCK_WGET
+  chmod +x "$limited/wget"
+
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env PATH="$limited" XDG_DATA_HOME="$data_home" XDG_BIN_HOME="$bin_home" PSH_RAW_BASE="$raw_base" bash "$installer_dir/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $bin_home/psh"* ]]
+  [ -x "$bin_home/psh" ]
+  [ -x "$data_home/psh/psh.sh" ]
+}
+
 @test "run requires jq" {
   local limited=$PSH_TEST_ROOT/limited-bin
   local orig_path=$PATH
