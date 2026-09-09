@@ -327,6 +327,18 @@ teardown() {
   [ ! -e "$XDG_CONFIG_HOME/omarchy/plugins/com.csfh.promptshell" ]
 }
 
+@test "install.sh from a checkout falls back to HOME local share and bin directories" {
+  run bash "$PSH_REPO_ROOT/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"payload $HOME/.local/share/psh/psh.sh"* ]]
+  [[ "$output" == *"launcher $HOME/.local/bin/psh"* ]]
+  [[ "$output" == *"completion $HOME/.local/share/bash-completion/completions/psh"* ]]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ -x "$HOME/.local/bin/psh" ]
+  [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
+}
+
 @test "install.sh honors PSH_INSTALL_DIR from a checkout" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
