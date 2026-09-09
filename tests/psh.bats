@@ -1335,6 +1335,23 @@ teardown() {
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "uninstall succeeds without HOME when PSH_INSTALL_DIR is set" {
+  local data_home=$PSH_TEST_ROOT/xdg-data
+  local install_dir=$PSH_TEST_ROOT/install-bin
+
+  env PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" install >/dev/null
+
+  run env -u HOME PSH_INSTALL_DIR="$install_dir" XDG_DATA_HOME="$data_home" "$PSH_REPO_ROOT/bin/psh.sh" uninstall
+
+  assert_status 0
+  [[ "$output" == *"removed $install_dir/psh"* ]]
+  [[ "$output" == *"removed $data_home/psh/psh.sh"* ]]
+  [[ "$output" == *"removed $data_home/bash-completion/completions/psh"* ]]
+  [ ! -e "$install_dir/psh" ]
+  [ ! -e "$data_home/psh/psh.sh" ]
+  [ ! -e "$data_home/bash-completion/completions/psh" ]
+}
+
 @test "piped install.sh requires curl or wget" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/pipe-install-bin
