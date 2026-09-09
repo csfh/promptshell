@@ -455,6 +455,27 @@ teardown() {
   [ -f "$HOME/.local/share/bash-completion/completions/psh" ]
 }
 
+@test "install.sh honors PSH_INSTALL_NAME when falling back to HOME local bin when checkout payload is missing" {
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local raw_base=https://example.test/promptshell
+
+  mkdir -p "$installer_dir"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env PSH_INSTALL_NAME=psh-alt bash "$installer_dir/install.sh"
+
+  assert_status 0
+  [[ "$output" == *"launcher $HOME/.local/bin/psh-alt"* ]]
+  [ -x "$HOME/.local/bin/psh-alt" ]
+  [ -x "$HOME/.local/share/psh/psh.sh" ]
+  [ ! -e "$HOME/.local/bin/psh" ]
+}
+
 @test "install.sh honors PSH_INSTALL_DIR when checkout payload is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local install_dir=$PSH_TEST_ROOT/install-bin
