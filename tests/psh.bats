@@ -303,6 +303,42 @@ teardown() {
   [[ "$output" == *"grok is required for the grok provider"* ]]
 }
 
+@test "claude provider requires the claude binary" {
+  require_command setsid
+
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export PSH_PROVIDER=claude
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"claude is required for the claude provider"* ]]
+}
+
+@test "gemini provider requires the gemini binary" {
+  require_command setsid
+
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export PSH_PROVIDER=gemini
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"gemini is required for the gemini provider"* ]]
+}
+
+@test "codex provider requires the codex binary" {
+  require_command setsid
+
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export PSH_PROVIDER=codex
+
+  run psh_no_tty run say hi
+
+  assert_status 2
+  [[ "$output" == *"codex is required for the codex provider"* ]]
+}
+
 @test "claude provider parses JSON result and disallows mutating tools" {
   require_command setsid
 
