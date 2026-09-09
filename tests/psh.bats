@@ -774,6 +774,21 @@ teardown() {
   [ "$(<"$url_file")" = "https://api.fireworks.ai/inference/v1/chat/completions" ]
 }
 
+@test "saved config model is sent in the hosted request" {
+  local request_file=$PSH_TEST_ROOT/request.json
+
+  require_command setsid
+  mock_hosted_command true
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4o-mini", api_key: "from-config"}' >"$XDG_CONFIG_HOME/psh/config.json"
+  export PSH_CAPTURE_REQUEST=$request_file
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  jq -e '.model == "gpt-4o-mini"' "$request_file" >/dev/null
+}
+
 @test "openai hosted URL is used by default" {
   local url_file=$PSH_TEST_ROOT/url.txt
 
