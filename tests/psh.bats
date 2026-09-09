@@ -836,6 +836,15 @@ teardown() {
   [[ "$output" == *"not installed at $bin_home/psh"* ]]
 }
 
+@test "uninstall --purge reports when nothing is installed" {
+  local bin_home=$PSH_TEST_ROOT/xdg-bin
+
+  run env XDG_BIN_HOME="$bin_home" XDG_DATA_HOME="$PSH_TEST_ROOT/xdg-data" "$PSH_REPO_ROOT/bin/psh.sh" uninstall --purge
+
+  assert_status 0
+  [[ "$output" == *"not installed at $bin_home/psh"* ]]
+}
+
 @test "uninstall rejects a launcher directory" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
