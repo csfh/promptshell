@@ -2979,6 +2979,18 @@ MOCK_WGET
   [ "$output" = true ]
 }
 
+@test "verbose -v prints thinking debug" {
+  require_command setsid
+  mock_hosted_content "$(printf '<think>\nhidden-reasoning\n</think>\n%s' "$(command_json true)")"
+  export OPENAI_API_KEY=dummy
+
+  run psh_no_tty -v run say hi
+
+  assert_status 0
+  [[ "$output" == *"psh debug: thinking"* ]]
+  [[ "$output" == *"hidden-reasoning"* ]]
+}
+
 @test "verbose -v prints debug configuration" {
   require_command setsid
   mock_hosted_command true
