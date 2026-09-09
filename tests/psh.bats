@@ -1870,6 +1870,24 @@ EOF
   [ -f "$data_home/bash-completion/completions/psh" ]
 }
 
+@test "install.sh requires HOME when checkout payload is missing" {
+  local installer_dir=$PSH_TEST_ROOT/standalone
+  local raw_base=https://example.test/promptshell
+
+  mkdir -p "$installer_dir"
+  cp "$PSH_REPO_ROOT/install.sh" "$installer_dir/install.sh"
+
+  install_mock_raw_curl
+  export PSH_RAW_BASE=$raw_base
+  export PSH_EXPECT_INSTALL_SOURCE=$raw_base/bin/psh.sh
+  export PSH_INSTALL_SOURCE_FILE=$PSH_REPO_ROOT/bin/psh.sh
+
+  run env -u HOME -u XDG_DATA_HOME -u XDG_BIN_HOME -u PSH_INSTALL_DIR bash "$installer_dir/install.sh"
+
+  assert_status 1
+  [[ "$output" == *"psh install: HOME is required unless install path env vars are set"* ]]
+}
+
 @test "install.sh downloads from the default GitHub raw URL when checkout payload is missing" {
   local data_home=$PSH_TEST_ROOT/xdg-data
   local bin_home=$PSH_TEST_ROOT/xdg-bin
