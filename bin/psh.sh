@@ -824,13 +824,32 @@ debug_json_panel() {
 model_think_content() {
   content=$1
 
-  printf '%s\n' "$content" | jq -Rrs -r 'capture("(?s)<think>\\n?(?<think>.*?)\\n?</think>")?.think // empty'
+  # jq 1.6 has no Oniguruma named captures; split the think block instead.
+  printf '%s\n' "$content" | jq -Rrs -r '
+    split("</think>")[0]
+    | split("<think>")
+    | if length < 2 then empty
+      else .[1] | sub("^\n"; "") | sub("\n$"; "")
+      end
+  '
 }
 
 model_content_without_think() {
   content=$1
 
-  printf '%s\n' "$content" | jq -Rrs -r 'gsub("(?s)<think>.*?</think>"; "") | sub("^\\s+"; "") | sub("\\s+$"; "")'
+  printf '%s\n' "$content" | jq -Rrs -r '
+    split("<think>") as $parts
+    | if ($parts | length) < 2 then .
+      else $parts[0] + (
+        ($parts[1:] | join("<think>"))
+        | split("</think>")
+        | .[1:]
+        | join("</think>")
+      )
+      end
+    | sub("^[ \t\n\r]+"; "")
+    | sub("[ \t\n\r]+$"; "")
+  '
 }
 
 debug_model_content() {
@@ -1589,8 +1608,11 @@ extract_structured_json() {
   fi
 
   parsed=$(printf '%s\n' "$without_think" | jq -Rrs -c '
-    capture("(?s)(?<json>\\{.*\\})")?.json
-    | fromjson
+    index("{") as $start
+    | rindex("}") as $end
+    | if $start == null or $end == null or $end < $start then empty
+      else .[$start:$end+1] | fromjson
+      end
   ' 2>/dev/null || true)
 
   if [ -n "$parsed" ]; then
