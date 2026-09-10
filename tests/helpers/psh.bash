@@ -20,12 +20,18 @@ setup_psh_test() {
   unset OPENAI_MODEL
   unset FIREWORKS_MODEL
   unset CODEX_MODEL
+  unset GROK_MODEL
+  unset CLAUDE_MODEL
+  unset GEMINI_MODEL
   unset PSH_MOCK_RESPONSE
   unset PSH_CAPTURE_REQUEST
   unset PSH_CAPTURE_URL
   unset PSH_CODEX_JSONL
   unset PSH_CAPTURE_CODEX_PROMPT
   unset PSH_CAPTURE_CODEX_MODEL
+  unset PSH_CAPTURE_HARNESS_ARGV
+  unset PSH_HARNESS_OUTPUT
+  unset PSH_CURL_QUEUE
   unset PSH_INSTALL_DIR
   unset PSH_INSTALL_NAME
   unset PSH_RAW_BASE
@@ -105,6 +111,67 @@ mock_hosted_question() {
 
   content=$(jq -cn '{type: "question", question: "Which target?", options: ["Docker", "Images"]}')
   mock_hosted_content "$content"
+}
+
+install_mock_curl_queue() {
+  local queue=$PSH_TEST_ROOT/curl-queue
+  mkdir -p "$queue"
+  : >"$queue/index"
+  local i=0
+  local response
+  for response in "$@"; do
+    i=$((i + 1))
+    printf '%s\n' "$response" >"$queue/$i"
+  done
+  printf '%s\n' "$i" >"$queue/count"
+
+  cat >"$PSH_MOCK_BIN/curl" <<'MOCK_CURL_QUEUE'
+#!/bin/sh
+
+out=
+data=
+url=
+queue=${PSH_CURL_QUEUE:-}
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    -o)
+      shift
+      out=${1:-}
+      ;;
+    -d)
+      shift
+      data=${1:-}
+      ;;
+    -H)
+      shift
+      ;;
+    http*)
+      url=$1
+      ;;
+  esac
+  shift || break
+done
+
+[ -n "$out" ] || exit 2
+[ -n "$queue" ] || exit 2
+
+if [ -n "${PSH_CAPTURE_REQUEST:-}" ]; then
+  printf '%s\n' "$data" >"$PSH_CAPTURE_REQUEST"
+fi
+
+if [ -n "${PSH_CAPTURE_URL:-}" ]; then
+  printf '%s\n' "$url" >"$PSH_CAPTURE_URL"
+fi
+
+index=$(cat "$queue/index")
+index=$((index + 1))
+printf '%s\n' "$index" >"$queue/index"
+cp "$queue/$index" "$out"
+MOCK_CURL_QUEUE
+
+  chmod +x "$PSH_MOCK_BIN/curl"
+  export PSH_CURL_QUEUE=$queue
 }
 
 install_mock_curl() {
@@ -248,4 +315,52 @@ printf '%s\n' "$PSH_CODEX_JSONL"
 MOCK_CODEX
 
   chmod +x "$PSH_MOCK_BIN/codex"
+}
+
+command_json() {
+  jq -cn \
+    --arg command "$1" \
+    --arg explanation "${2:-}" \
+    --arg risk "${3:-safe}" \
+    '{type: "command", command: $command, explanation: $explanation, risk: $risk, requires_approval: true}'
+}
+
+chat_completion() {
+  jq -cn --arg content "$1" '{choices: [{message: {content: $content}}]}'
+}
+
+install_mock_harness() {
+  cat >"$PSH_MOCK_BIN/$1" <<'MOCK_HARNESS'
+#!/bin/sh
+
+if [ -n "${PSH_CAPTURE_HARNESS_ARGV:-}" ]; then
+  printf '%s\n' "$*" >"$PSH_CAPTURE_HARNESS_ARGV"
+fi
+
+printf '%s\n' "${PSH_HARNESS_OUTPUT:-}"
+MOCK_HARNESS
+
+  chmod +x "$PSH_MOCK_BIN/$1"
+}
+
+mock_harness_command() {
+  local name=$1
+  local field=$2
+  shift 2
+
+  install_mock_harness "$name"
+  PSH_HARNESS_OUTPUT=$(jq -cn --arg field "$field" --arg value "$(command_json "$1" "${2:-}" "${3:-safe}")" '{($field): $value}')
+  export PSH_HARNESS_OUTPUT
+}
+
+mock_grok_command() {
+  mock_harness_command grok text "$@"
+}
+
+mock_claude_command() {
+  mock_harness_command claude result "$@"
+}
+
+mock_gemini_command() {
+  mock_harness_command gemini response "$@"
 }

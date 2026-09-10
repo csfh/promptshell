@@ -24,6 +24,8 @@ if [[ -n $repo_psh ]]; then
   exec sh "$repo_psh" install
 fi
 
+# Fetch once, then run `psh install` from that file so the payload is the
+# current script and psh does not download a second copy.
 raw_base=${PSH_RAW_BASE:-https://raw.githubusercontent.com/csfh/promptshell/main}
 source_url=$raw_base/bin/psh.sh
 work_dir=$(mktemp -d)
@@ -39,4 +41,4 @@ else
   exit 2
 fi
 
-sh "$payload" install
+exec sh "$payload" install
