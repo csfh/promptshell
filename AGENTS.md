@@ -6,7 +6,8 @@
 - `psh run` eagerly treats all remaining argv as the prompt, e.g. `psh run clean up docker`.
 - `psh run` reads stdin when no prompt args are supplied, e.g. `echo "clean up docker" | psh run`.
 - If argv does not match a known command, treat all argv as an implicit `run` prompt, e.g. `psh clean up docker`.
-- The tool should return the shell command to run, then require user approval before execution.
+- Interactive execution requires `y` or `Y` on `/dev/tty`. With no controlling terminal, print the generated command and exit 0. See `docs/adr/0001-approval-is-a-keypress-on-dev-tty.md`.
+- `psh up codex|grok|claude|gemini` installs that CLI harness with `mise use -y -g <harness>@latest` and selects it. See `docs/adr/0006-psh-up-installs-a-harness-with-mise.md`.
 - Preserve normal CLI behavior expectations: stdin/stdout composition, scriptability, and minimal surprise for shell users.
 
 ## Current Repo State

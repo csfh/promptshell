@@ -42,7 +42,8 @@ setup_psh_test() {
 }
 
 teardown_psh_test() {
-  rm -rf "$PSH_TEST_ROOT"
+  export PATH="/usr/bin:/bin"
+  /usr/bin/rm -rf "$PSH_TEST_ROOT"
 }
 
 require_command() {
@@ -363,4 +364,39 @@ mock_claude_command() {
 
 mock_gemini_command() {
   mock_harness_command gemini response "$@"
+}
+
+export_path_without_mise() {
+  local filtered=$PSH_TEST_ROOT/filtered-path/usr-bin
+  local entry base
+
+  mkdir -p "$filtered"
+  for entry in /usr/bin/*; do
+    base=${entry##*/}
+    [ "$base" = mise ] && continue
+    [ -e "$entry" ] || continue
+    ln -s "$entry" "$filtered/$base"
+  done
+  export PATH="$PSH_MOCK_BIN:$filtered"
+}
+
+install_mock_mise() {
+  cat >"$PSH_MOCK_BIN/mise" <<'MOCK_MISE'
+#!/bin/sh
+
+if [ -n "${PSH_CAPTURE_MISE_ARGV:-}" ]; then
+  printf '%s\n' "$*" >>"$PSH_CAPTURE_MISE_ARGV"
+fi
+
+status=${PSH_MISE_STATUS:-0}
+if [ "$status" -ne 0 ]; then
+  exit "$status"
+fi
+
+if [ "${1:-}" = which ]; then
+  printf '%s\n' "${PSH_MISE_WHICH:-}"
+fi
+MOCK_MISE
+
+  chmod +x "$PSH_MOCK_BIN/mise"
 }

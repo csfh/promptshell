@@ -9,6 +9,7 @@ usage() {
   printf '       printf %%s "PROMPT" | psh [-v|-vv|-vvv] run\n'
   printf '       psh [-v|-vv|-vvv] setup\n'
   printf '       psh [-v|-vv|-vvv] setup model\n'
+  printf '       psh up codex|grok|claude|gemini\n'
   printf '       psh install\n'
   printf '       psh update\n'
   printf '       psh uninstall [--purge]\n'
@@ -1009,6 +1010,28 @@ cli_provider_available() {
   [ -n "$binary" ] && command -v "$binary" >/dev/null 2>&1
 }
 
+resolve_harness_binary() {
+  name=$1
+  resolved=$(command -v "$name" 2>/dev/null || true)
+  if [ -n "$resolved" ]; then
+    printf '%s\n' "$resolved"
+    return 0
+  fi
+
+  if ! command -v mise >/dev/null 2>&1; then
+    return 1
+  fi
+
+  resolved=$(mise which "$name" 2>/dev/null || true)
+  resolved=$(printf '%s\n' "$resolved" | awk 'NF { print; exit }')
+  if [ -n "$resolved" ] && [ -x "$resolved" ]; then
+    printf '%s\n' "$resolved"
+    return 0
+  fi
+
+  return 1
+}
+
 env_value() {
   [ -n "$1" ] || return 0
   awk -v key="$1" 'BEGIN { if (ENVIRON[key] != "") print ENVIRON[key] }'
@@ -1079,7 +1102,8 @@ resolve_generation_provider() {
     api_key=
     url=
     binary=$(provider_binary "$provider")
-    if ! command -v "$binary" >/dev/null 2>&1; then
+    harness_bin=$(resolve_harness_binary "$binary" || true)
+    if [ -z "$harness_bin" ]; then
       printf 'psh: %s is required for the %s provider\n' "$binary" "$provider" >&2
       exit 2
     fi
@@ -1536,16 +1560,16 @@ invoke_cli_harness() {
 
   case $provider in
     codex)
-      sh -c 'codex exec --json -m "$1" "$2" >"$3" </dev/null' sh "$model" "$combined" "$response_file"
+      sh -c '"$1" exec --json -m "$2" "$3" >"$4" </dev/null' sh "$harness_bin" "$model" "$combined" "$response_file"
       ;;
     grok)
-      sh -c 'grok -p "$1" -m "$2" --output-format json --max-turns 1 --tools "read_file,grep,list_dir" >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      sh -c '"$1" -p "$2" -m "$3" --output-format json --max-turns 1 --tools "read_file,grep,list_dir" >"$4" </dev/null' sh "$harness_bin" "$combined" "$model" "$response_file"
       ;;
     claude)
-      sh -c 'claude -p "$1" --model "$2" --output-format json --disallowedTools Bash Edit Write >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      sh -c '"$1" -p "$2" --model "$3" --output-format json --disallowedTools Bash Edit Write >"$4" </dev/null' sh "$harness_bin" "$combined" "$model" "$response_file"
       ;;
     gemini)
-      sh -c 'gemini -p "$1" -m "$2" --output-format json >"$3" </dev/null' sh "$combined" "$model" "$response_file"
+      sh -c '"$1" -p "$2" -m "$3" --output-format json >"$4" </dev/null' sh "$harness_bin" "$combined" "$model" "$response_file"
       ;;
     *)
       printf 'psh: unsupported provider: %s\n' "$provider" >&2
@@ -1694,6 +1718,41 @@ run_command() {
   approve_and_run "$command_result"
 }
 
+up_command() {
+  require_jq
+
+  if [ "$#" -ne 1 ]; then
+    usage >&2
+    exit 2
+  fi
+
+  harness=$1
+  kind=$(provider_kind "$harness" 2>/dev/null || true)
+  if [ "$kind" != cli ]; then
+    printf 'psh: unsupported harness: %s\n' "$harness" >&2
+    exit 2
+  fi
+
+  if ! command -v mise >/dev/null 2>&1; then
+    printf 'psh: mise is required\n' >&2
+    exit 2
+  fi
+
+  set +e
+  mise use -y -g "$harness@latest"
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ]; then
+    exit "$status"
+  fi
+
+  existing_api_key=$(config_value api_key)
+  model=$(provider_default_model "$harness")
+  file=$(write_config "$harness" "$model" "$existing_api_key")
+  log_info "saved config to $file"
+  exit 0
+}
+
 setup_command() {
   if [ "$#" -eq 1 ] && [ "$1" = model ]; then
     setup_model
@@ -1717,7 +1776,7 @@ dispatch_command() {
 
   requested_command=$1
   case $requested_command in
-    run|setup|install|update|uninstall|help|-h|--help)
+    run|setup|install|update|uninstall|up|help|-h|--help)
       shift
       ;;
     *)
@@ -1731,6 +1790,9 @@ dispatch_command() {
       ;;
     setup)
       setup_command "$@"
+      ;;
+    up)
+      up_command "$@"
       ;;
     install)
       install_command "$@"

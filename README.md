@@ -108,6 +108,17 @@ Provider/model environment variables:
 
 CLI harnesses only propose a command. `psh` still shows it and requires approval before execution. Grok is invoked with a read-only `--tools` allowlist. Claude is invoked with `--disallowedTools Bash Edit Write`. Gemini is invoked without `--yolo`.
 
+Install a harness and select it, when `mise` is already on `PATH`:
+
+```sh
+psh up grok
+psh up codex
+psh up claude
+psh up gemini
+```
+
+`psh up` runs `mise use -y -g <harness>@latest`, then saves that harness and its default model in the config file. An existing API key stays. Sign in with the harness itself. `PSH_PROVIDER` still overrides one run. If the harness is not on `PATH` afterward, `psh` uses `mise which`.
+
 Environment variables override saved config for that run.
 
 ## Usage

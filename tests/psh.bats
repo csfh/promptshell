@@ -19,6 +19,7 @@ teardown() {
   [[ "$output" == *"psh install"* ]]
   [[ "$output" == *"psh update"* ]]
   [[ "$output" == *"psh uninstall"* ]]
+  [[ "$output" == *"psh up codex|grok|claude|gemini"* ]]
   [[ "$output" != *"psh install omarchy"* ]]
 }
 
@@ -1256,7 +1257,7 @@ EOF
 @test "grok provider requires the grok binary" {
   require_command setsid
 
-  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export_path_without_mise
   export PSH_PROVIDER=grok
 
   run psh_no_tty run say hi
@@ -1268,7 +1269,7 @@ EOF
 @test "claude provider requires the claude binary" {
   require_command setsid
 
-  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export_path_without_mise
   export PSH_PROVIDER=claude
 
   run psh_no_tty run say hi
@@ -1280,7 +1281,7 @@ EOF
 @test "gemini provider requires the gemini binary" {
   require_command setsid
 
-  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export_path_without_mise
   export PSH_PROVIDER=gemini
 
   run psh_no_tty run say hi
@@ -1292,7 +1293,7 @@ EOF
 @test "codex provider requires the codex binary" {
   require_command setsid
 
-  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+  export_path_without_mise
   export PSH_PROVIDER=codex
 
   run psh_no_tty run say hi
@@ -3400,5 +3401,137 @@ MOCK_WGET
 
   assert_status 1
   [[ "$output" == *"too many clarification rounds"* ]]
+}
+
+@test "psh up grok installs the harness with mise and selects it" {
+  require_command setsid
+  install_mock_mise
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+
+  run psh_no_tty up grok
+
+  assert_status 0
+  [ "$(<"$PSH_CAPTURE_MISE_ARGV")" = "use -y -g grok@latest" ]
+  jq -e '.provider == "grok" and .model == "grok-4.6" and .api_key == ""' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+  [ "$(stat -c '%a' "$XDG_CONFIG_HOME/psh/config.json")" = 600 ]
+  [[ "$output" == *"saved config to $XDG_CONFIG_HOME/psh/config.json"* ]]
+}
+
+@test "psh up preserves an existing API key" {
+  require_command setsid
+  install_mock_mise
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: "keep-me"}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_no_tty up codex
+
+  assert_status 0
+  jq -e '.provider == "codex" and .model == "gpt-5.5" and .api_key == "keep-me"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
+@test "psh up without mise exits 2 and leaves config untouched" {
+  require_command setsid
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: "keep-me"}' >"$XDG_CONFIG_HOME/psh/config.json"
+  export_path_without_mise
+
+  run psh_no_tty up grok
+
+  assert_status 2
+  [[ "$output" == *"mise is required"* ]]
+  jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "keep-me"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
+@test "psh up rejects a missing, extra, hosted, or unknown harness" {
+  require_command setsid
+  install_mock_mise
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: "keep-me"}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_no_tty up
+  assert_status 2
+  [[ "$output" == *"usage: psh"* ]]
+
+  run psh_no_tty up grok extra
+  assert_status 2
+
+  run psh_no_tty up openai
+  assert_status 2
+  [[ "$output" == *"unsupported harness: openai"* ]]
+
+  run psh_no_tty up nope
+  assert_status 2
+  [[ "$output" == *"unsupported harness: nope"* ]]
+
+  [ ! -e "$PSH_CAPTURE_MISE_ARGV" ]
+  jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "keep-me"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
+@test "psh up leaves config unchanged when mise fails" {
+  require_command setsid
+  install_mock_mise
+  export PSH_MISE_STATUS=3
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+  mkdir -p "$XDG_CONFIG_HOME/psh"
+  jq -n '{provider: "openai", model: "gpt-4.1-mini", api_key: "keep-me"}' >"$XDG_CONFIG_HOME/psh/config.json"
+
+  run psh_no_tty up gemini
+
+  assert_status 3
+  [ "$(<"$PSH_CAPTURE_MISE_ARGV")" = "use -y -g gemini@latest" ]
+  jq -e '.provider == "openai" and .model == "gpt-4.1-mini" and .api_key == "keep-me"' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
+@test "psh up again upgrades the harness" {
+  require_command setsid
+  install_mock_mise
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+
+  run psh_no_tty up claude
+  assert_status 0
+  run psh_no_tty up claude
+  assert_status 0
+
+  [ "$(<"$PSH_CAPTURE_MISE_ARGV")" = "$(printf '%s\n' 'use -y -g claude@latest' 'use -y -g claude@latest')" ]
+  jq -e '.provider == "claude" and .model == "sonnet" and .api_key == ""' "$XDG_CONFIG_HOME/psh/config.json" >/dev/null
+}
+
+@test "a run uses mise which when the harness is off PATH" {
+  require_command setsid
+
+  local hidden=$PSH_TEST_ROOT/hidden
+
+  mock_grok_command true
+  mkdir -p "$hidden"
+  mv "$PSH_MOCK_BIN/grok" "$hidden/grok"
+  install_mock_mise
+  export PSH_MISE_WHICH=$hidden/grok
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+  export PSH_PROVIDER=grok
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [ "$(<"$PSH_CAPTURE_MISE_ARGV")" = "which grok" ]
+}
+
+@test "a run uses the PATH harness before mise which" {
+  require_command setsid
+
+  mock_grok_command true
+  install_mock_mise
+  export PSH_MISE_WHICH=$PSH_TEST_ROOT/should-not-run
+  export PSH_CAPTURE_MISE_ARGV=$PSH_TEST_ROOT/mise-argv.txt
+  export PSH_PROVIDER=grok
+  export PATH="$PSH_MOCK_BIN:/usr/bin:/bin"
+
+  run psh_no_tty run say hi
+
+  assert_status 0
+  [ "$output" = true ]
+  [ ! -e "$PSH_CAPTURE_MISE_ARGV" ]
 }
 
